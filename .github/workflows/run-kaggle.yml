@@ -1,0 +1,189 @@
+name: Run Kaggle LightGBM sessions
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_push:
+        description: Push even when the watchdog would wait
+        required: false
+        default: false
+        type: boolean
+      profile:
+        description: Notebook configuration profile
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - smoke
+  schedule:
+    - cron: "7,37 * * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "*.py"
+      - "config/*.json"
+      - "scripts/*.py"
+      - "kaggle_notebook.ipynb"
+      - "kernel-metadata.json"
+      - ".github/workflows/run-kaggle.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kaggle-lightgbm-v2-session-watchdog
+  cancel-in-progress: false
+
+jobs:
+  orchestrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_API_TOKEN_SECRET: ${{ secrets.KAGGLE_API_TOKEN }}
+      KAGGLE_KERNEL: ${{ secrets.KAGGLE_KERNEL }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      S3_PREFIX: ${{ secrets.S3_PREFIX }}
+      NOTEBOOK_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.profile || 'production' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install orchestration dependencies
+        run: python -m pip install --disable-pip-version-check "boto3>=1.34,<2"
+
+      - name: Normalize and configure credentials without printing values
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          names = (
+              "KAGGLE_USERNAME", "KAGGLE_API_TOKEN_SECRET", "KAGGLE_KERNEL",
+              "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+              "AWS_REGION", "AWS_DEFAULT_REGION", "S3_BUCKET", "S3_PREFIX",
+          )
+          cleaned = {}
+          for name in names:
+              value = os.environ.get(name)
+              if value is not None:
+                  cleaned[name] = value.replace("\r", "").replace("\n", "").replace("\\r", "").replace("\\n", "").strip()
+          token = cleaned.get("KAGGLE_API_TOKEN_SECRET", "")
+          username = cleaned.get("KAGGLE_USERNAME", "")
+          github_env = Path(os.environ["GITHUB_ENV"])
+          with github_env.open("a", encoding="utf-8") as handle:
+              for name, value in cleaned.items():
+                  handle.write(f"{name}={value}\n")
+              if token.startswith("KGAT_"):
+                  handle.write(f"KAGGLE_API_TOKEN={token}\n")
+              else:
+                  if token.lstrip().startswith("{"):
+                      credentials = json.loads(token)
+                      username = str(credentials.get("username", username))
+                      token = str(credentials["key"])
+                  if not username:
+                      raise RuntimeError("KAGGLE_USERNAME is required for a legacy Kaggle key")
+                  handle.write(f"KAGGLE_USERNAME={username}\nKAGGLE_KEY={token}\n")
+          print("Credential environment configured; values were not printed.")
+
+      - name: Validate required GitHub Secrets
+        shell: bash
+        run: |
+          required=(KAGGLE_API_TOKEN_SECRET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION S3_BUCKET S3_PREFIX)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required GitHub Secret: ${name}" >&2
+              exit 1
+            fi
+          done
+          if [[ -z "${KAGGLE_KERNEL:-}" ]]; then
+            KAGGLE_KERNEL="$(python -c 'import json; print(json.load(open("config/orchestration.json"))["kaggle_kernel"])')"
+            echo "KAGGLE_KERNEL=${KAGGLE_KERNEL}" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Decide whether another Kaggle session is needed
+        id: decision
+        shell: bash
+        run: |
+          args=()
+          if [[ "${{ inputs.force_push || false }}" == "true" ]]; then
+            args+=(--force)
+          fi
+          python scripts/kaggle_orchestrator.py decide \
+            --kernel "${KAGGLE_KERNEL}" \
+            --github-output "${GITHUB_OUTPUT}" \
+            "${args[@]}"
+
+      - name: Build self-contained Kaggle bundle
+        if: steps.decision.outputs.should_push == 'true'
+        shell: bash
+        run: |
+          mkdir -p .kaggle_bundle
+          python scripts/generate_presigned_config.py \
+            --output .kaggle_bundle/s3_presigned_config.json \
+            --bucket "${S3_BUCKET}" \
+            --s3-prefix "${S3_PREFIX}" \
+            --expires 86400 \
+            --region "${AWS_DEFAULT_REGION}"
+          python scripts/build_kaggle_notebook.py \
+            --profile "${NOTEBOOK_PROFILE}" \
+            --presigned-config .kaggle_bundle/s3_presigned_config.json \
+            --output .kaggle_bundle/kaggle_notebook.ipynb
+          python -c "from pathlib import Path; Path('.kaggle_bundle/s3_presigned_config.json').unlink()"
+          cp kernel-metadata.json .kaggle_bundle/kernel-metadata.json
+
+      - name: Validate bundle contains no long-lived credential
+        if: steps.decision.outputs.should_push == 'true'
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          bundle = Path(".kaggle_bundle")
+          metadata = json.loads((bundle / "kernel-metadata.json").read_text())
+          notebook = json.loads((bundle / metadata["code_file"]).read_text())
+          assert metadata["enable_gpu"] == "false"
+          assert metadata["enable_tpu"] == "false"
+          assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet-per-classes"]
+          source = "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
+          assert "PRESIGNED_CONFIG_B64" in source
+          assert "AWS_SECRET_ACCESS_KEY=" not in source
+          assert "AKIA" not in source
+          assert notebook["nbformat"] == 4
+          print("Kaggle bundle validation passed")
+
+      - name: Push and start Kaggle notebook
+        if: steps.decision.outputs.should_push == 'true'
+        shell: bash
+        run: |
+          timeout_seconds="$(python -c 'import json; print(json.load(open("config/orchestration.json"))["kaggle_session_timeout_seconds"])')"
+          python scripts/kaggle_http.py push --path .kaggle_bundle --timeout "${timeout_seconds}"
+
+      - name: Record successful launch in S3
+        if: steps.decision.outputs.should_push == 'true'
+        shell: bash
+        run: |
+          python scripts/kaggle_orchestrator.py record-push \
+            --reason "${{ steps.decision.outputs.reason }}" \
+            --observed-iteration "${{ steps.decision.outputs.current_iteration }}"
+
+      - name: Report watchdog decision
+        shell: bash
+        run: |
+          echo "Kernel status: ${{ steps.decision.outputs.kernel_status }}"
+          echo "Current iteration: ${{ steps.decision.outputs.current_iteration }}"
+          echo "Push next session: ${{ steps.decision.outputs.should_push }}"
+          echo "Reason: ${{ steps.decision.outputs.reason }}"

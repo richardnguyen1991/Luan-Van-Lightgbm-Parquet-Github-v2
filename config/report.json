@@ -1,0 +1,14 @@
+{
+  "prediction_chunk_rows": 250000,
+  "maximum_roc_pr_plot_samples": 2000000,
+  "explain_max_samples": 50000,
+  "shap_chunk_rows": 1000,
+  "permutation_repeats": 5,
+  "top_features_to_plot": 30,
+  "benchmark": {
+    "batch_size": 1024,
+    "warmup_iterations": 50,
+    "measurement_iterations": 500
+  },
+  "seed": 2026
+}

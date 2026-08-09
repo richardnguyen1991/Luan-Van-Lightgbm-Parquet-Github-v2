@@ -1,0 +1,51 @@
+{
+  "dataset": {
+    "data_dir": "/kaggle/input/cicddos2019-parquet-per-classes",
+    "file_pattern": "**/*.parquet",
+    "target_column": null,
+    "target_column_candidates": ["Label", "label", "Class", "class", "target", "Target"],
+    "label_from_filename_if_missing": true,
+    "sample_id_column_candidates": ["sample_id", "Sample ID", "Flow ID", "FlowID"],
+    "group_column_candidates": [
+      ["Flow ID"],
+      ["Source IP", "Destination IP", "Source Port", "Destination Port", "Protocol"]
+    ],
+    "samples_per_file": null
+  },
+  "split": {
+    "train": 0.70,
+    "validation": 0.15,
+    "test": 0.15,
+    "seed": 2026,
+    "strategy": "auto_group_aware",
+    "require_all_classes_each_split": true
+  },
+  "preprocessing": {
+    "explicit_drop_columns": [],
+    "drop_name_patterns": [
+      "(^|[_\\s])flow([_\\s]?id)?$",
+      "(^|[_\\s])(src|source)([_\\s]?(ip|port))?$",
+      "(^|[_\\s])(dst|destination)([_\\s]?(ip|port))?$",
+      "(^|[_\\s])timestamp$",
+      "(^|[_\\s])simillarhttp$"
+    ],
+    "numeric_output_dtype": "float32",
+    "nan_inf_policy": "replace_positive_and_negative_infinity_with_nan_keep_nan_for_lightgbm",
+    "scaling": "none"
+  },
+  "output": {
+    "rows_per_part": 262144,
+    "compression": "zstd"
+  },
+  "memory": {
+    "profile_sample_rows_per_file": 50000,
+    "lightgbm_peak_multiplier": 3.0,
+    "max_available_ram_fraction": 0.80
+  },
+  "audit": {
+    "backend": "sqlite",
+    "sqlite_batch_rows": 50000,
+    "fail_on_cross_split_overlap": true,
+    "fail_on_group_cross_split_overlap": true
+  }
+}
