@@ -46,8 +46,9 @@ class NotebookBundleTest(unittest.TestCase):
         self.assertIn('kaggle_dir / "access_token"', workflow)
         self.assertIn('handle.write(f"KAGGLE_API_TOKEN={token}', workflow)
         self.assertIn("uses: actions/checkout@v4", workflow)
-        self.assertIn("scripts/kaggle_http.py push", workflow)
-        self.assertNotIn("kaggle kernels push --path .kaggle_bundle", workflow)
+        self.assertIn('"kaggle>=2.1.2,<3"', workflow)
+        self.assertIn("kaggle kernels push", workflow)
+        self.assertNotIn("scripts/kaggle_http.py push", workflow)
         self.assertIn("AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}", workflow)
 
     def test_presigned_key_manifest_covers_checkpoint_report_and_explainability(self):
