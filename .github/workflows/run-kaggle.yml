@@ -62,12 +62,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install orchestration dependencies
-        run: python -m pip install --disable-pip-version-check "boto3>=1.34,<2" "kaggle>=1.7.4,<2"
+        run: python -m pip install --disable-pip-version-check "boto3>=1.34,<2"
 
-      - name: Normalize and configure credentials without printing values
+      - name: Normalize secret line endings
         shell: python
         run: |
-          import json
           import os
           from pathlib import Path
 
@@ -76,43 +75,80 @@ jobs:
               "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
               "AWS_REGION", "AWS_DEFAULT_REGION", "S3_BUCKET", "S3_PREFIX",
           )
-          cleaned = {}
-          for name in names:
-              value = os.environ.get(name)
-              if value is not None:
-                  cleaned[name] = value.replace("\r", "").replace("\n", "").replace("\\r", "").replace("\\n", "").strip()
-          token = cleaned.get("KAGGLE_API_TOKEN_SECRET", "")
-          username = cleaned.get("KAGGLE_USERNAME", "")
           github_env = Path(os.environ["GITHUB_ENV"])
           with github_env.open("a", encoding="utf-8") as handle:
-              for name, value in cleaned.items():
-                  handle.write(f"{name}={value}\n")
-              if token.startswith("KGAT_"):
+              for name in names:
+                  value = os.environ.get(name)
+                  if value is None:
+                      continue
+                  cleaned = (
+                      value.replace("\r", "").replace("\n", "")
+                      .replace("\\r", "").replace("\\n", "").strip()
+                  )
+                  handle.write(f"{name}={cleaned}\n")
+          print("Secret line endings normalized; values were not printed.")
+
+      - name: Configure Kaggle access token
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          token = os.environ["KAGGLE_API_TOKEN_SECRET"]
+          username = os.environ.get("KAGGLE_USERNAME", "")
+          kaggle_dir = Path.home() / ".kaggle"
+          kaggle_dir.mkdir(parents=True, exist_ok=True)
+          github_env = Path(os.environ["GITHUB_ENV"])
+          if token.startswith("KGAT_"):
+              (kaggle_dir / "access_token").write_text(token, encoding="utf-8")
+              with github_env.open("a", encoding="utf-8") as handle:
                   handle.write(f"KAGGLE_API_TOKEN={token}\n")
+              mode = "OAuth API token"
+          else:
+              if token.lstrip().startswith("{"):
+                  credentials = json.loads(token)
+                  username = str(credentials.get("username", username))
+                  key = str(credentials["key"])
               else:
-                  if token.lstrip().startswith("{"):
-                      credentials = json.loads(token)
-                      username = str(credentials.get("username", username))
-                      token = str(credentials["key"])
-                  if not username:
-                      raise RuntimeError("KAGGLE_USERNAME is required for a legacy Kaggle key")
-                  handle.write(f"KAGGLE_USERNAME={username}\nKAGGLE_KEY={token}\n")
-          print("Credential environment configured; values were not printed.")
+                  key = token
+              if not username:
+                  raise RuntimeError("KAGGLE_USERNAME is required for a legacy Kaggle API key")
+              (kaggle_dir / "kaggle.json").write_text(
+                  json.dumps({"username": username, "key": key}), encoding="utf-8"
+              )
+              with github_env.open("a", encoding="utf-8") as handle:
+                  handle.write(f"KAGGLE_USERNAME={username}\nKAGGLE_KEY={key}\n")
+              mode = "legacy username/key"
+          for path in kaggle_dir.iterdir():
+              path.chmod(0o600)
+          print(f"Configured Kaggle {mode} credentials; values were not printed.")
+
+      - name: Resolve Kaggle kernel from metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          kernel="$(python -c 'import json; print(json.load(open("kernel-metadata.json", encoding="utf-8"))["id"])')"
+          test -n "$kernel"
+          if test -n "${KAGGLE_KERNEL:-}" && test "$KAGGLE_KERNEL" != "$kernel"; then
+            echo "Warning: KAGGLE_KERNEL secret differs from metadata; using metadata id $kernel."
+          fi
+          echo "KAGGLE_KERNEL=$kernel" >> "$GITHUB_ENV"
+          echo "Using Kaggle kernel: $kernel"
 
       - name: Validate required GitHub Secrets
         shell: bash
         run: |
-          required=(KAGGLE_API_TOKEN_SECRET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION S3_BUCKET S3_PREFIX)
+          required=(
+            KAGGLE_USERNAME KAGGLE_API_TOKEN_SECRET AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION S3_BUCKET S3_PREFIX
+          )
           for name in "${required[@]}"; do
             if [[ -z "${!name:-}" ]]; then
               echo "Missing required GitHub Secret: ${name}" >&2
               exit 1
             fi
           done
-          if [[ -z "${KAGGLE_KERNEL:-}" ]]; then
-            KAGGLE_KERNEL="$(python -c 'import json; print(json.load(open("config/orchestration.json"))["kaggle_kernel"])')"
-            echo "KAGGLE_KERNEL=${KAGGLE_KERNEL}" >> "${GITHUB_ENV}"
-          fi
 
       - name: Decide whether another Kaggle session is needed
         id: decision
@@ -170,7 +206,9 @@ jobs:
         shell: bash
         run: |
           timeout_seconds="$(python -c 'import json; print(json.load(open("config/orchestration.json"))["kaggle_session_timeout_seconds"])')"
-          kaggle kernels push --path .kaggle_bundle --timeout "${timeout_seconds}"
+          python scripts/kaggle_http.py push \
+            --path .kaggle_bundle \
+            --timeout "${timeout_seconds}"
 
       - name: Record successful launch in S3
         if: steps.decision.outputs.should_push == 'true'
