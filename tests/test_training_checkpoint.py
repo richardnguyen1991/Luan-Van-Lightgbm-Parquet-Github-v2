@@ -185,7 +185,7 @@ class CheckpointTest(unittest.TestCase):
             else:
                 os.environ["S3_PREFIX"] = old_prefix
 
-    def test_presigned_upload_uses_staging_copy_and_sha256_verification(self) -> None:
+    def test_presigned_upload_uses_atomic_put_and_sha256_verification(self) -> None:
         class Response:
             def __init__(self, status=200, body=b""):
                 self.status_code = status
@@ -210,15 +210,13 @@ class CheckpointTest(unittest.TestCase):
 
             def put(self, url, data=None, headers=None, timeout=None):
                 self.calls.append(("put", url))
-                if url == "put-temp":
-                    self.temporary = data.read()
-                elif url == "copy-final":
-                    self.final = self.temporary
+                if url == "put-final":
+                    self.final = data.read()
                 return Response()
 
             def head(self, url, timeout=None):
                 self.calls.append(("head", url))
-                return Response(body=self.temporary if url == "head-temp" else self.final)
+                return Response(body=self.final)
 
             def get(self, url, stream=False, timeout=None):
                 self.calls.append(("get", url))
@@ -226,7 +224,6 @@ class CheckpointTest(unittest.TestCase):
 
             def delete(self, url, timeout=None):
                 self.calls.append(("delete", url))
-                self.temporary = b""
                 return Response()
 
         old_values = {name: os.environ.get(name) for name in ("S3_BUCKET", "S3_PREFIX", "S3_PRESIGNED_CONFIG_PATH")}
@@ -239,10 +236,8 @@ class CheckpointTest(unittest.TestCase):
                 presigned = {
                     "bucket": "bucket", "s3_prefix": "project",
                     "uploads": {key: {
-                        "put_temporary": "put-temp", "head_temporary": "head-temp",
-                        "copy_final": "copy-final", "copy_headers": {},
-                        "head_final": "head-final", "get_final": "get-final",
-                        "delete_temporary": "delete-temp",
+                        "put_final": "put-final", "head_final": "head-final",
+                        "get_final": "get-final",
                     }},
                     "downloads": {},
                 }
@@ -262,8 +257,7 @@ class CheckpointTest(unittest.TestCase):
                 self.assertEqual(fake.final, source.read_bytes())
                 self.assertEqual(
                     fake.calls,
-                    [("put", "put-temp"), ("head", "head-temp"), ("put", "copy-final"),
-                     ("head", "head-final"), ("get", "get-final"), ("delete", "delete-temp")],
+                    [("put", "put-final"), ("head", "head-final"), ("get", "get-final")],
                 )
         finally:
             for name, value in old_values.items():

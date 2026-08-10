@@ -155,7 +155,7 @@ jobs:
         shell: bash
         run: |
           args=()
-          if [[ "${{ inputs.force_push || false }}" == "true" ]]; then
+          if [[ "${{ github.event_name }}" == "push" || "${{ inputs.force_push || false }}" == "true" ]]; then
             args+=(--force)
           fi
           python scripts/kaggle_orchestrator.py decide \

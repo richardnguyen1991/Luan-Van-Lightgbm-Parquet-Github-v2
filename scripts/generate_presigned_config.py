@@ -7,7 +7,6 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import quote
 
 
 AWS_ENV_NAMES = (
@@ -134,30 +133,15 @@ def part_upload_operations(client: object, bucket: str, prefix: str, run_id: str
 
 
 def presigned_operations(client: object, bucket: str, final_key: str, expires: int) -> dict[str, object]:
-    temporary_key = f"{final_key}.staging"
-    copy_source = f"/{bucket}/{quote(temporary_key, safe='/')}"
     return {
-        "temporary_key": temporary_key,
-        "put_temporary": client.generate_presigned_url(
-            "put_object", Params={"Bucket": bucket, "Key": temporary_key}, ExpiresIn=expires
+        "put_final": client.generate_presigned_url(
+            "put_object", Params={"Bucket": bucket, "Key": final_key}, ExpiresIn=expires
         ),
-        "head_temporary": client.generate_presigned_url(
-            "head_object", Params={"Bucket": bucket, "Key": temporary_key}, ExpiresIn=expires
-        ),
-        "copy_final": client.generate_presigned_url(
-            "copy_object",
-            Params={"Bucket": bucket, "Key": final_key, "CopySource": {"Bucket": bucket, "Key": temporary_key}, "MetadataDirective": "COPY"},
-            ExpiresIn=expires,
-        ),
-        "copy_headers": {"x-amz-copy-source": copy_source, "x-amz-metadata-directive": "COPY"},
         "head_final": client.generate_presigned_url(
             "head_object", Params={"Bucket": bucket, "Key": final_key}, ExpiresIn=expires
         ),
         "get_final": client.generate_presigned_url(
             "get_object", Params={"Bucket": bucket, "Key": final_key}, ExpiresIn=expires
-        ),
-        "delete_temporary": client.generate_presigned_url(
-            "delete_object", Params={"Bucket": bucket, "Key": temporary_key}, ExpiresIn=expires
         ),
     }
 
@@ -180,7 +164,7 @@ def main() -> None:
     existing_parts = existing_preprocessing_part_keys(client, args.bucket, prefix, run_id)
     download_keys = keys | existing_parts
     payload = {
-        "format_version": 3,
+        "format_version": 4,
         "bucket": args.bucket,
         "s3_prefix": prefix,
         "run_id": run_id,

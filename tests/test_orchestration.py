@@ -41,6 +41,7 @@ class NotebookBundleTest(unittest.TestCase):
         self.assertEqual(metadata["dataset_sources"], ["dungnguyen28101991/cicddos2019-parquet-per-classes"])
         workflow = (PROJECT_ROOT / ".github" / "workflows" / "run-kaggle.yml").read_text(encoding="utf-8")
         self.assertIn("scripts/kaggle_orchestrator.py decide", workflow)
+        self.assertIn('"${{ github.event_name }}" == "push"', workflow)
         self.assertIn("scripts/generate_presigned_config.py", workflow)
         self.assertIn('KAGGLE_API_TOKEN_SECRET: ${{ secrets.KAGGLE_API_TOKEN }}', workflow)
         self.assertIn('kaggle_dir / "access_token"', workflow)

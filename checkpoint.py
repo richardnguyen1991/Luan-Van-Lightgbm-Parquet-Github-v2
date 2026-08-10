@@ -234,6 +234,44 @@ class S3Store:
                 LOGGER.warning(message)
                 return False
             requests = self._requests()
+            if "put_final" in entry:
+                try:
+                    with source.open("rb") as handle:
+                        def put_final() -> Any:
+                            handle.seek(0)
+                            return requests.put(entry["put_final"], data=handle, timeout=1800)
+
+                        response = self._retry("presigned_put_final", put_final)
+                    response.raise_for_status()
+                    final_head = self._retry(
+                        "presigned_head_final",
+                        lambda: requests.head(entry["head_final"], timeout=120),
+                    )
+                    final_head.raise_for_status()
+                    if int(final_head.headers.get("Content-Length", -1)) != size:
+                        raise IOError("Presigned final S3 size verification failed")
+                    digest = hashlib.sha256()
+                    final_get = self._retry(
+                        "presigned_get_final",
+                        lambda: requests.get(entry["get_final"], stream=True, timeout=1800),
+                    )
+                    final_get.raise_for_status()
+                    for block in final_get.iter_content(chunk_size=1024 * 1024):
+                        if block:
+                            digest.update(block)
+                    if digest.hexdigest() != checksum:
+                        raise IOError("Presigned final S3 SHA-256 verification failed")
+                    return True
+                except Exception as exc:
+                    if self.required:
+                        raise
+                    LOGGER.warning(
+                        "Presigned S3 upload failed; local artifact remains at %s: %s",
+                        source,
+                        type(exc).__name__,
+                    )
+                    return False
+            # Backward compatibility for already-issued format-3 session bundles.
             try:
                 with source.open("rb") as handle:
                     def put_temporary() -> Any:
