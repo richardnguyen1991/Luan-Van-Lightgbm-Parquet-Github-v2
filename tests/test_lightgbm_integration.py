@@ -31,8 +31,8 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
                 for number, (start, stop) in enumerate(((0, rows // 2), (rows // 2, rows))):
                     count = stop - start
                     frame = pd.DataFrame({
-                        "f0": np.arange(start, stop, dtype=np.float32),
-                        "f1": np.linspace(0, 1, count, dtype=np.float32),
+                        "f[0]": np.arange(start, stop, dtype=np.float32),
+                        "f\"1:rate": np.linspace(0, 1, count, dtype=np.float32),
                         "_sample_file_id": np.zeros(count, dtype=np.uint64),
                         "_sample_row_id": np.arange(start, stop, dtype=np.uint64),
                         "_label": np.arange(start, stop, dtype=np.int32) % 3,
@@ -45,8 +45,8 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
             artifacts = {
                 "sample_manifest.json": {"parts": parts, "split": {"sizes": sizes}},
                 "preprocessing.json": {
-                    "feature_columns_in_order": ["f0", "f1"],
-                    "feature_dtypes": {"f0": "float32", "f1": "float32"},
+                    "feature_columns_in_order": ["f[0]", "f\"1:rate"],
+                    "feature_dtypes": {"f[0]": "float32", "f\"1:rate": "float32"},
                     "categorical_features": [], "scaling": "none", "imbalance_handling": "none",
                 },
                 "label_mapping.json": {"a": 0, "b": 1, "c": 2},
@@ -67,6 +67,7 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
             self.assertEqual(bundle.test_dataset.num_data(), sizes["test"])
             self.assertEqual(bundle.features["test"].shape, (sizes["test"], 2))
             self.assertEqual(bundle.features["test"].iloc[2:5].shape, (3, 2))
+            self.assertEqual(booster.feature_name(), ["f0000_f_0", "f0001_f_1_rate"])
             prediction = booster.predict(bundle.features["test"].iloc[:4])
             self.assertEqual(prediction.shape, (4, 3))
 

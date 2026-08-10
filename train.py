@@ -128,6 +128,7 @@ def _write_run_configuration(
     feature_schema_hash: str,
     label_mapping: Mapping[str, int],
     feature_names: list[str],
+    model_feature_names: list[str],
     lightgbm_version: str,
 ) -> tuple[Path, Path]:
     config_dir = run_dir / "config"
@@ -148,6 +149,9 @@ def _write_run_configuration(
         "params_hash": params_hash,
         "feature_schema_hash": feature_schema_hash,
         "feature_count": len(feature_names),
+        "feature_names": feature_names,
+        "model_feature_names": model_feature_names,
+        "feature_name_mapping": dict(zip(feature_names, model_feature_names)),
         "num_classes": len(label_mapping),
         "environment": _environment_metadata(lightgbm_version, int(params["num_threads"])),
     })
@@ -243,7 +247,7 @@ def train(args: argparse.Namespace) -> int:
         _copy_prepared_metadata(prepared, run_dir)
         _write_run_configuration(
             run_dir, config, bundle.params, bundle.params_hash, bundle.feature_schema_hash,
-            bundle.label_mapping, bundle.feature_names, lgb.__version__,
+            bundle.label_mapping, bundle.feature_names, bundle.model_feature_names, lgb.__version__,
         )
         for path in sorted((run_dir / "config").glob("*.json")):
             manager.sync_artifact(run_id, path, "config")

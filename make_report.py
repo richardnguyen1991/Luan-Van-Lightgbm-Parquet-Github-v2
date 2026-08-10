@@ -337,8 +337,7 @@ def compute_auc_pr(y_true: np.ndarray, y_prob: np.ndarray, num_classes: int, sup
         gc.collect()
     weights = np.asarray(valid_support, dtype=np.float64)
     y_true_binary = np.equal.outer(np.asarray(y_true), np.arange(num_classes)).astype(np.int8).ravel()
-   ÷Ní¢G§²ÚîÆ­yÑl_explain), chunk_rows):
-                stop = min(start + chunk_rows, len(actual_explain))
+   ÷Şí¢G§²ÚîÆ­yÔ + chunk_rows, len(actual_explain))
                 raw_contributions = booster.predict(
                     actual_explain.iloc[start:stop], pred_contrib=True, num_iteration=100
                 )
@@ -389,15 +388,15 @@ def compute_auc_pr(y_true: np.ndarray, y_prob: np.ndarray, num_classes: int, sup
     repeats = int(report_config["permutation_repeats"])
     rng = np.random.default_rng(int(report_config["seed"]))
     decreases: dict[str, list[float]] = {name: [] for name in feature_names}
-    for feature in feature_names:
-        original = actual_explain[feature].to_numpy(copy=True)
+    for feature, model_feature in zip(feature_names, model_feature_names):
+        original = actual_explain[model_feature].to_numpy(copy=True)
         for _ in range(repeats):
-            actual_explain[feature] = rng.permutation(original)
+            actual_explain[model_feature] = rng.permutation(original)
             predicted = np.asarray(booster.predict(actual_explain, num_iteration=100)).argmax(axis=1)
             score = f1_score(labels, predicted, labels=list(range(len(class_names))), average="macro", zero_division=0)
             decreases[feature].append(float(baseline_f1 - score))
             del predicted
-        actual_explain[feature] = original
+        actual_explain[model_feature] = original
         del original
         gc.collect()
     permutation_table = pd.DataFrame({

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -103,6 +104,7 @@ class DatasetBundle:
     features: dict[str, Any]
     labels: dict[str, np.ndarray]
     feature_names: list[str]
+    model_feature_names: list[str]
     label_mapping: dict[str, int]
     params: dict[str, Any]
     params_hash: str
@@ -121,13 +123,17 @@ class LazyParquetFeatures:
     """DataFrame-like, row-addressable view over prepared Parquet parts."""
 
     def __init__(
-        self, prepared_dir: Path, parts: Sequence[Mapping[str, Any]], feature_names: Sequence[str]
+        self, prepared_dir: Path, parts: Sequence[Mapping[str, Any]], feature_names: Sequence[str],
+        output_feature_names: Sequence[str] | None = None,
     ) -> None:
         if not parts:
             raise ValueError("Prepared split contains no Parquet parts")
         self.prepared_dir = prepared_dir
         self.parts = [dict(part) for part in parts]
         self.feature_names = list(feature_names)
+        self.output_feature_names = list(output_feature_names or feature_names)
+        if len(self.output_feature_names) != len(self.feature_names):
+            raise ValueError("Input and output feature-name counts differ")
         self._lengths = np.asarray([int(part["rows"]) for part in self.parts], dtype=np.int64)
         self._offsets = np.concatenate(([0], np.cumsum(self._lengths)))
         self.iloc = _ILocIndexer(self)
@@ -160,7 +166,7 @@ class LazyParquetFeatures:
         if np.any((positions < 0) | (positions >= len(self))):
             raise IndexError("Parquet row index is out of range")
         if not len(positions):
-            empty = pd.DataFrame(columns=self.feature_names, dtype=np.float32)
+            empty = pd.DataFrame(columns=self.output_feature_names, dtype=np.float32)
             return empty if as_frame else empty.to_numpy(dtype=np.float32)
 
         result = np.empty((len(positions), len(self.feature_names)), dtype=np.float32)
@@ -172,11 +178,22 @@ class LazyParquetFeatures:
             result[output_positions] = frame.iloc[local_positions].to_numpy(dtype=np.float32, copy=False)
         if scalar:
             if as_frame:
-                return pd.Series(result[0], index=self.feature_names)
+                return pd.Series(result[0], index=self.output_feature_names)
             return result[0]
         if as_frame:
-            return pd.DataFrame(result, columns=self.feature_names)
+            return pd.DataFrame(result, columns=self.output_feature_names)
         return result
+
+
+def lightgbm_safe_feature_names(feature_names: Sequence[str]) -> list[str]:
+    """Create stable, unique ASCII names accepted by LightGBM's JSON serializer."""
+    safe = []
+    for index, original in enumerate(feature_names):
+        slug = re.sub(r"[^A-Za-z0-9_]+", "_", str(original)).strip("_") or "feature"
+        safe.append(f"f{index:04d}_{slug[:96]}")
+    if len(set(safe)) != len(safe):
+        raise AssertionError("Generated LightGBM feature names are not unique")
+    return safe
 
 
 def _sequence_for_part(lgb: Any, prepared_dir: Path, part: Mapping[str, Any], feature_names: Sequence[str], batch_size: int) -> Any:
@@ -231,6 +248,7 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     label_mapping = {str(key): int(value) for key, value in _read_json(prepared / "label_mapping.json").items()}
     profile = _read_json(prepared / "data_profile.json")
     feature_names = list(preprocessing["feature_columns_in_order"])
+    model_feature_names = lightgbm_safe_feature_names(feature_names)
     if preprocessing.get("scaling") != "none" or preprocessing.get("imbalance_handling") != "none":
         raise ValueError("Prepared data violates the unscaled/unbalanced baseline contract")
     batch_size = int(config["dataset"].get("sequence_batch_rows", 8192))
@@ -246,7 +264,7 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     sequences: dict[str, list[Any]] = {}
     for split in SPLIT_NAMES:
         parts = manifest["parts"][split]
-        features[split] = LazyParquetFeatures(prepared, parts, feature_names)
+        features[split] = LazyParquetFeatures(prepared, parts, feature_names, model_feature_names)
         labels[split] = _read_split_labels(prepared, parts)
         sequences[split] = [
             _sequence_for_part(lgb, prepared, part, feature_names, batch_size) for part in parts
@@ -261,19 +279,20 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     params = effective_model_params(config, len(label_mapping))
     free_raw = bool(config["dataset"].get("free_raw_data", True))
     train_dataset = lgb.Dataset(
-        sequences["train"], label=labels["train"], feature_name=feature_names,
+        sequences["train"], label=labels["train"], feature_name=model_feature_names,
         categorical_feature=[], free_raw_data=free_raw,
     )
     validation_dataset = lgb.Dataset(
         sequences["validation"], label=labels["validation"], reference=train_dataset,
-        feature_name=feature_names, categorical_feature=[], free_raw_data=free_raw,
+        feature_name=model_feature_names, categorical_feature=[], free_raw_data=free_raw,
     )
     test_dataset = lgb.Dataset(
         sequences["test"], label=labels["test"], reference=train_dataset,
-        feature_name=feature_names, categorical_feature=[], free_raw_data=free_raw,
+        feature_name=model_feature_names, categorical_feature=[], free_raw_data=free_raw,
     )
     schema_payload = {
         "feature_names": feature_names,
+        "model_feature_names": model_feature_names,
         "feature_dtypes": preprocessing["feature_dtypes"],
         "categorical_features": preprocessing["categorical_features"],
         "label_mapping": label_mapping,
@@ -285,6 +304,7 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         features=features,
         labels=labels,
         feature_names=feature_names,
+        model_feature_names=model_feature_names,
         label_mapping=label_mapping,
         params=params,
         params_hash=canonical_hash(params),
