@@ -363,12 +363,12 @@ class CheckpointManager:
         if requested:
             return requested
         remote = self.s3.read_json(self.s3.project_key("active_run.json")) if self.s3.enabled else None
-        if remote and remote.get("status") in {"running", "paused", "ready_for_report"}:
+        if remote and remote.get("status") in {"preparing", "running", "paused", "ready_for_report"}:
             return str(remote["run_id"])
         if self.active_pointer.exists():
             with self.active_pointer.open(encoding="utf-8") as handle:
                 local = json.load(handle)
-            if local.get("status") in {"running", "paused", "ready_for_report"}:
+            if local.get("status") in {"preparing", "running", "paused", "ready_for_report"}:
                 return str(local["run_id"])
         return f"{self.model_name}_{datetime.now().strftime('%Y%m%d-%H%M')}"
 

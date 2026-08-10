@@ -16,7 +16,6 @@ try:
 except ImportError:
     from kaggle_http import get_kernel_status
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SECRET_ENV_NAMES = (
     "KAGGLE_USERNAME", "KAGGLE_API_TOKEN", "KAGGLE_API_TOKEN_SECRET", "KAGGLE_KEY",
@@ -82,6 +81,10 @@ def decide_next_session(
     active_status = str(active.get("status", "missing")).casefold()
     attempts = int(state.get("session_attempts", 0))
     stagnant = int(state.get("stagnant_restarts", 0))
+    preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
+    previous_preprocessing_progress = int(state.get("last_preprocessing_completed_files", 0))
+    if preprocessing_progress > previous_preprocessing_progress:
+        stagnant = 0
     if force:
         return Decision(True, "manual force", current, kernel_status, attempts, stagnant)
     if active_status == "complete" and current == int(config["target_iteration"]):
@@ -141,9 +144,10 @@ class S3State:
 
 def kernel_status(kernel: str) -> str:
     try:
-        return normalize_kernel_status(get_kernel_status(kernel))
-    except Exception:
+        output = f'Kernel has status "{get_kernel_status(kernel)}"'
+    except Exception as exc:
         return "unknown"
+    return normalize_kernel_status(output)
 
 
 def write_github_output(path: str | None, decision: Decision) -> None:
@@ -176,12 +180,16 @@ def command_record(args: argparse.Namespace) -> None:
     previous = store.read_json("orchestration_state.json") or {}
     active = store.read_json("active_run.json") or {}
     observed = int(active.get("current_iteration", args.observed_iteration))
+    preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
     prior = int(previous.get("last_observed_iteration", -1))
+    previous_preprocessing_progress = int(previous.get("last_preprocessing_completed_files", 0))
+    made_progress = observed > prior or preprocessing_progress > previous_preprocessing_progress
     state = {
         "last_push_at": utc_now(), "last_push_reason": args.reason,
         "last_observed_iteration": observed,
+        "last_preprocessing_completed_files": preprocessing_progress,
         "session_attempts": int(previous.get("session_attempts", 0)) + 1,
-        "stagnant_restarts": 0 if observed > prior else int(previous.get("stagnant_restarts", 0)) + 1,
+        "stagnant_restarts": 0 if made_progress else int(previous.get("stagnant_restarts", 0)) + 1,
     }
     store.write_json("orchestration_state.json", state)
     print(json.dumps(state, indent=2))

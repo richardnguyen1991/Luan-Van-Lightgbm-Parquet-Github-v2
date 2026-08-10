@@ -149,30 +149,45 @@ data_command = [
     "--data-dir", str(data_dir),
     "--output-dir", str(PREPARED_DIR),
 ]
-subprocess.run(data_command, cwd=SOURCE_DIR, check=True)
+if os.environ.get("RUN_ID"):
+    data_command.extend([
+        "--s3-config", str(SOURCE_DIR / "{train_config}"),
+        "--run-id", os.environ["RUN_ID"],
+        "--maximum-hours", "12",
+        "--stop-before-minutes", "30",
+    ])
+data_result = subprocess.run(data_command, cwd=SOURCE_DIR, check=False)
+if data_result.returncode not in (0, 75):
+    raise subprocess.CalledProcessError(data_result.returncode, data_command)
+PREPROCESSING_PAUSED = data_result.returncode == 75
+if PREPROCESSING_PAUSED:
+    print("Preprocessing paused after a durable source-file checkpoint; training is deferred to the next session.")
 '''
     round_limit = (
-        f'\ntrain_command.extend(["--max-rounds-this-session", "{max_rounds_this_session}"])'
+        f'\n    train_command.extend(["--max-rounds-this-session", "{max_rounds_this_session}"])'
         if max_rounds_this_session is not None
         else ""
     )
-    training = f'''train_command = [
+    training = f'''if PREPROCESSING_PAUSED:
+    print("Skipping training in this session because preprocessing will resume first.")
+else:
+    train_command = [
     sys.executable, str(SOURCE_DIR / "train.py"),
     "--config", str(SOURCE_DIR / "{train_config}"),
     "--prepared-data-dir", str(PREPARED_DIR),
     "--output-dir", str(RUNS_DIR),
     "--upload-checkpoints-to-s3",
-]
+    ]
 {round_limit}
-if os.environ.get("RUN_ID"):
-    train_command.extend(["--run-id", os.environ["RUN_ID"]])
-result = subprocess.run(train_command, cwd=SOURCE_DIR, check=False)
-if result.returncode not in (0, 75):
-    raise subprocess.CalledProcessError(result.returncode, train_command)
-if result.returncode == 75:
-    print("Session paused only after a verified checkpoint; the watchdog may launch the next session.")
-else:
-    print("Training reached iteration 100 and final reporting completed or remains durably retryable.")
+    if os.environ.get("RUN_ID"):
+        train_command.extend(["--run-id", os.environ["RUN_ID"]])
+    result = subprocess.run(train_command, cwd=SOURCE_DIR, check=False)
+    if result.returncode not in (0, 75):
+        raise subprocess.CalledProcessError(result.returncode, train_command)
+    if result.returncode == 75:
+        print("Session paused only after a verified checkpoint; the watchdog may launch the next session.")
+    else:
+        print("Training reached iteration 100 and final reporting completed or remains durably retryable.")
 '''
     summary = '''active_path = RUNS_DIR / "active_run.json"
 if active_path.exists():

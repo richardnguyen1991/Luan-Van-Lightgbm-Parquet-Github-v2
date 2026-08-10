@@ -55,6 +55,9 @@ class NotebookBundleTest(unittest.TestCase):
         keys = run_keys("project", "lightgbm_20260809-1200")
         expected = {
             "project/active_run.json",
+            "project/lightgbm_20260809-1200/preprocessing/progress.json",
+            "project/lightgbm_20260809-1200/preprocessing/splits/train/part-000000.parquet",
+            "project/lightgbm_20260809-1200/preprocessing/splits/validation/part-000511.parquet",
             "project/lightgbm_20260809-1200/checkpoints/last_model.txt",
             "project/lightgbm_20260809-1200/checkpoints/training_state.json",
             "project/lightgbm_20260809-1200/checkpoints/final_model_round_100.txt",
@@ -98,6 +101,20 @@ class WatchdogDecisionTest(unittest.TestCase):
         self.assertFalse(decide_next_session({}, recent, "complete", self.config, self.now).should_push)
         stagnant = {"stagnant_restarts": self.config["maximum_stagnant_restarts"]}
         self.assertFalse(decide_next_session({}, stagnant, "complete", self.config, self.now).should_push)
+
+    def test_preprocessing_progress_releases_old_stagnation_limit(self):
+        active = {
+            "status": "preparing",
+            "current_iteration": 0,
+            "preprocessing_completed_files": 3,
+        }
+        state = {
+            "last_preprocessing_completed_files": 1,
+            "stagnant_restarts": self.config["maximum_stagnant_restarts"],
+        }
+        decision = decide_next_session(active, state, "complete", self.config, self.now)
+        self.assertTrue(decision.should_push)
+        self.assertEqual(decision.stagnant_restarts, 0)
 
 
 if __name__ == "__main__":

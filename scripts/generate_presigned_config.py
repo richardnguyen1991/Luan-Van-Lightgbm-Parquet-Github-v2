@@ -60,7 +60,7 @@ def resolve_run_id(client: object, bucket: str, prefix: str, requested: str | No
     try:
         response = client.get_object(Bucket=bucket, Key=f"{prefix}/active_run.json")
         pointer = json.loads(response["Body"].read().decode("utf-8"))
-        if pointer.get("status") in {"running", "paused", "ready_for_report"}:
+        if pointer.get("status") in {"preparing", "running", "paused", "ready_for_report"}:
             return str(pointer["run_id"])
     except Exception as exc:
         response = getattr(exc, "response", {}) or {}
@@ -82,6 +82,19 @@ def run_keys(prefix: str, run_id: str) -> set[str]:
     keys.update(f"{root}/config/{name}" for name in CONFIG_FILES)
     keys.update(f"{root}/raw/{name}" for name in RAW_FILES)
     keys.update(f"{root}/explainability/{name}" for name in EXPLAIN_FILES)
+    preprocessing_root = f"{root}/preprocessing"
+    keys.update(f"{preprocessing_root}/{name}" for name in (
+        "progress.json", "data_profile.json", "label_mapping.json",
+        "preprocessing.json", "sample_manifest.json",
+    ))
+    # Part names are deterministic. 512 slots per split supports up to
+    # 402,653,184 rows at the configured 262,144 rows/part while keeping all
+    # Kaggle credentials object-scoped and short-lived.
+    keys.update(
+        f"{preprocessing_root}/splits/{split}/part-{number:06d}.parquet"
+        for split in ("train", "validation", "test")
+        for number in range(512)
+    )
     return keys
 
 
