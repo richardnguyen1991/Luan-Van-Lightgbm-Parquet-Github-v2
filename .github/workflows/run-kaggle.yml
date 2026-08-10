@@ -192,9 +192,11 @@ jobs:
           metadata = json.loads((bundle / "kernel-metadata.json").read_text())
           notebook = json.loads((bundle / metadata["code_file"]).read_text())
           assert metadata["enable_gpu"] == "false"
-          assert metadata["enable_tpu"] == "false"
+          assert metadata["enable_tpu"] == "true"
+          assert metadata["machine_shape"] == "Tpu1VmV38"
           assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet-per-classes"]
           source = "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
+          assert '"device_type": "cpu"' in source
           assert "PRESIGNED_CONFIG_ZLIB_B64" in source
           assert "AWS_SECRET_ACCESS_KEY=" not in source
           assert "AKIA" not in source
@@ -227,4 +229,3 @@ jobs:
           echo "Current iteration: ${{ steps.decision.outputs.current_iteration }}"
           echo "Push next session: ${{ steps.decision.outputs.should_push }}"
           echo "Reason: ${{ steps.decision.outputs.reason }}"
-
