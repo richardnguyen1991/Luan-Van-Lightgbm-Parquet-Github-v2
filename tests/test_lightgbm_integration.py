@@ -1,17 +1,75 @@
 import sys
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from model import IterationRecorder, TrainingPauseRequested, macro_f1_metric  # noqa: E402
+from model import IterationRecorder, TrainingPauseRequested, build_datasets, macro_f1_metric  # noqa: E402
 
 
 class LightGBMResumeIntegrationTest(unittest.TestCase):
+    def test_parquet_sequence_builds_all_three_datasets_without_full_frames(self) -> None:
+        try:
+            import lightgbm  # noqa: F401
+            import pyarrow  # noqa: F401
+        except ImportError:
+            self.skipTest("LightGBM and PyArrow are required")
+        with tempfile.TemporaryDirectory() as temporary:
+            prepared = Path(temporary)
+            parts = {name: [] for name in ("train", "validation", "test")}
+            sizes = {"train": 37, "validation": 13, "test": 11}
+            for split, rows in sizes.items():
+                split_dir = prepared / "splits" / split
+                split_dir.mkdir(parents=True)
+                for number, (start, stop) in enumerate(((0, rows // 2), (rows // 2, rows))):
+                    count = stop - start
+                    frame = pd.DataFrame({
+                        "f0": np.arange(start, stop, dtype=np.float32),
+                        "f1": np.linspace(0, 1, count, dtype=np.float32),
+                        "_sample_file_id": np.zeros(count, dtype=np.uint64),
+                        "_sample_row_id": np.arange(start, stop, dtype=np.uint64),
+                        "_label": np.arange(start, stop, dtype=np.int32) % 3,
+                    })
+                    path = split_dir / f"part-{number:06d}.parquet"
+                    frame.to_parquet(path, index=False)
+                    parts[split].append({
+                        "path": path.relative_to(prepared).as_posix(), "rows": count, "bytes": path.stat().st_size
+                    })
+            artifacts = {
+                "sample_manifest.json": {"parts": parts, "split": {"sizes": sizes}},
+                "preprocessing.json": {
+                    "feature_columns_in_order": ["f0", "f1"],
+                    "feature_dtypes": {"f0": "float32", "f1": "float32"},
+                    "categorical_features": [], "scaling": "none", "imbalance_handling": "none",
+                },
+                "label_mapping.json": {"a": 0, "b": 1, "c": 2},
+                "data_profile.json": {"safe_to_materialize_for_lightgbm": False},
+            }
+            for name, payload in artifacts.items():
+                (prepared / name).write_text(json.dumps(payload), encoding="utf-8")
+            config = json.loads((PROJECT_ROOT / "config" / "train.json").read_text(encoding="utf-8"))
+            config["dataset"]["sequence_batch_rows"] = 7
+            bundle = build_datasets(prepared, config)
+            booster = lightgbm.train(
+                bundle.params, bundle.train_dataset, num_boost_round=2,
+                valid_sets=[bundle.validation_dataset], valid_names=["validation"],
+            )
+            bundle.test_dataset.construct()
+            self.assertEqual(bundle.train_dataset.num_data(), sizes["train"])
+            self.assertEqual(bundle.validation_dataset.num_data(), sizes["validation"])
+            self.assertEqual(bundle.test_dataset.num_data(), sizes["test"])
+            self.assertEqual(bundle.features["test"].shape, (sizes["test"], 2))
+            self.assertEqual(bundle.features["test"].iloc[2:5].shape, (3, 2))
+            prediction = booster.predict(bundle.features["test"].iloc[:4])
+            self.assertEqual(prediction.shape, (4, 3))
+
     def test_native_booster_resumes_without_repeating_iterations(self) -> None:
         try:
             import lightgbm as lgb

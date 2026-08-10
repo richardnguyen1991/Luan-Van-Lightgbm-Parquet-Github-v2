@@ -100,7 +100,7 @@ class DatasetBundle:
     train_dataset: Any
     validation_dataset: Any
     test_dataset: Any
-    features: dict[str, pd.DataFrame]
+    features: dict[str, Any]
     labels: dict[str, np.ndarray]
     feature_names: list[str]
     label_mapping: dict[str, int]
@@ -109,21 +109,115 @@ class DatasetBundle:
     feature_schema_hash: str
 
 
-def _read_split(prepared_dir: Path, parts: Sequence[Mapping[str, Any]], feature_names: Sequence[str]) -> tuple[pd.DataFrame, np.ndarray]:
+class _ILocIndexer:
+    def __init__(self, owner: "LazyParquetFeatures") -> None:
+        self.owner = owner
+
+    def __getitem__(self, index: Any) -> pd.DataFrame | pd.Series:
+        return self.owner.read(index, as_frame=True)
+
+
+class LazyParquetFeatures:
+    """DataFrame-like, row-addressable view over prepared Parquet parts."""
+
+    def __init__(
+        self, prepared_dir: Path, parts: Sequence[Mapping[str, Any]], feature_names: Sequence[str]
+    ) -> None:
+        if not parts:
+            raise ValueError("Prepared split contains no Parquet parts")
+        self.prepared_dir = prepared_dir
+        self.parts = [dict(part) for part in parts]
+        self.feature_names = list(feature_names)
+        self._lengths = np.asarray([int(part["rows"]) for part in self.parts], dtype=np.int64)
+        self._offsets = np.concatenate(([0], np.cumsum(self._lengths)))
+        self.iloc = _ILocIndexer(self)
+
+    def __len__(self) -> int:
+        return int(self._offsets[-1])
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        return len(self), len(self.feature_names)
+
+    def _read_part(self, part_index: int) -> pd.DataFrame:
+        frame = pd.read_parquet(
+            self.prepared_dir / str(self.parts[part_index]["path"]), columns=self.feature_names
+        )
+        if list(frame.columns) != self.feature_names:
+            raise AssertionError("Feature order does not match preprocessing.json")
+        return frame.astype(np.float32)
+
+    def read(self, index: Any, as_frame: bool = False) -> Any:
+        scalar = isinstance(index, (int, np.integer))
+        if scalar:
+            positions = np.asarray([int(index)], dtype=np.int64)
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            positions = np.arange(start, stop, step, dtype=np.int64)
+        else:
+            positions = np.asarray(index, dtype=np.int64).reshape(-1)
+            positions = np.where(positions < 0, positions + len(self), positions)
+        if np.any((positions < 0) | (positions >= len(self))):
+            raise IndexError("Parquet row index is out of range")
+        if not len(positions):
+            empty = pd.DataFrame(columns=self.feature_names, dtype=np.float32)
+            return empty if as_frame else empty.to_numpy(dtype=np.float32)
+
+        result = np.empty((len(positions), len(self.feature_names)), dtype=np.float32)
+        part_indices = np.searchsorted(self._offsets[1:], positions, side="right")
+        for part_index in np.unique(part_indices):
+            output_positions = np.flatnonzero(part_indices == part_index)
+            local_positions = positions[output_positions] - self._offsets[part_index]
+            frame = self._read_part(int(part_index))
+            result[output_positions] = frame.iloc[local_positions].to_numpy(dtype=np.float32, copy=False)
+        if scalar:
+            if as_frame:
+                return pd.Series(result[0], index=self.feature_names)
+            return result[0]
+        if as_frame:
+            return pd.DataFrame(result, columns=self.feature_names)
+        return result
+
+
+def _sequence_for_part(lgb: Any, prepared_dir: Path, part: Mapping[str, Any], feature_names: Sequence[str], batch_size: int) -> Any:
+    class ParquetPartSequence(lgb.Sequence):
+        def __init__(self) -> None:
+            self.path = prepared_dir / str(part["path"])
+            self.rows = int(part["rows"])
+            self.columns = list(feature_names)
+            self.batch_size = int(batch_size)
+            self._cache: pd.DataFrame | None = None
+
+        def __len__(self) -> int:
+            return self.rows
+
+        def __getitem__(self, index: Any) -> np.ndarray:
+            if self._cache is None:
+                self._cache = pd.read_parquet(self.path, columns=self.columns).astype(np.float32)
+                if len(self._cache) != self.rows or list(self._cache.columns) != self.columns:
+                    raise AssertionError(f"Prepared Parquet metadata mismatch: {self.path}")
+            selected = self._cache.iloc[index]
+            # LightGBM's Sequence sampler requires double precision sample rows;
+            # only this bounded batch is converted, never the full split.
+            values = selected.to_numpy(dtype=np.float64, copy=True)
+            release = not isinstance(index, slice) or index.stop is None or int(index.stop) >= self.rows
+            if release:
+                self._cache = None
+            return values
+
+    return ParquetPartSequence()
+
+
+def _read_split_labels(prepared_dir: Path, parts: Sequence[Mapping[str, Any]]) -> np.ndarray:
     if not parts:
         raise ValueError("Prepared split contains no Parquet parts")
-    frames = [pd.read_parquet(prepared_dir / str(part["path"])) for part in parts]
-    frame = pd.concat(frames, ignore_index=True)
-    del frames
-    expected = list(feature_names) + list(INTERNAL_COLUMNS)
-    missing = sorted(set(expected).difference(frame.columns))
-    if missing:
-        raise ValueError(f"Prepared split is missing columns: {missing}")
-    if list(frame.loc[:, feature_names].columns) != list(feature_names):
-        raise AssertionError("Feature order does not match preprocessing.json")
-    labels = frame["_label"].to_numpy(dtype=np.int32, copy=True)
-    features = frame.loc[:, feature_names].astype(np.float32, copy=False)
-    return features, labels
+    arrays = [
+        pd.read_parquet(prepared_dir / str(part["path"]), columns=["_label"])["_label"].to_numpy(
+            dtype=np.int32, copy=True
+        )
+        for part in parts
+    ]
+    return np.concatenate(arrays) if len(arrays) > 1 else arrays[0]
 
 
 def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> DatasetBundle:
@@ -136,18 +230,27 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     preprocessing = _read_json(prepared / "preprocessing.json")
     label_mapping = {str(key): int(value) for key, value in _read_json(prepared / "label_mapping.json").items()}
     profile = _read_json(prepared / "data_profile.json")
-    if config["dataset"].get("require_safe_memory_profile", True) and not profile["safe_to_materialize_for_lightgbm"]:
-        raise MemoryError(
-            "data_profile.json marks full LightGBM materialization unsafe for available RAM; "
-            "the baseline will not silently sample or discard train rows"
-        )
     feature_names = list(preprocessing["feature_columns_in_order"])
     if preprocessing.get("scaling") != "none" or preprocessing.get("imbalance_handling") != "none":
         raise ValueError("Prepared data violates the unscaled/unbalanced baseline contract")
-    features: dict[str, pd.DataFrame] = {}
+    batch_size = int(config["dataset"].get("sequence_batch_rows", 8192))
+    if batch_size <= 0:
+        raise ValueError("dataset.sequence_batch_rows must be positive")
+    if not profile["safe_to_materialize_for_lightgbm"]:
+        LOGGER.info(
+            "Raw full-matrix materialization is unsafe; constructing LightGBM Datasets from "
+            "Parquet Sequences with %d rows per batch", batch_size,
+        )
+    features: dict[str, LazyParquetFeatures] = {}
     labels: dict[str, np.ndarray] = {}
+    sequences: dict[str, list[Any]] = {}
     for split in SPLIT_NAMES:
-        features[split], labels[split] = _read_split(prepared, manifest["parts"][split], feature_names)
+        parts = manifest["parts"][split]
+        features[split] = LazyParquetFeatures(prepared, parts, feature_names)
+        labels[split] = _read_split_labels(prepared, parts)
+        sequences[split] = [
+            _sequence_for_part(lgb, prepared, part, feature_names, batch_size) for part in parts
+        ]
     observed = sorted(set(np.concatenate([labels[name] for name in SPLIT_NAMES]).tolist()))
     expected = list(range(len(label_mapping)))
     if observed != expected:
@@ -156,17 +259,17 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         if len(features[split]) != int(manifest["split"]["sizes"][split]):
             raise AssertionError(f"Prepared {split} row count disagrees with sample_manifest.json")
     params = effective_model_params(config, len(label_mapping))
-    free_raw = bool(config["dataset"].get("free_raw_data", False))
+    free_raw = bool(config["dataset"].get("free_raw_data", True))
     train_dataset = lgb.Dataset(
-        features["train"], label=labels["train"], feature_name=feature_names,
+        sequences["train"], label=labels["train"], feature_name=feature_names,
         categorical_feature=[], free_raw_data=free_raw,
     )
     validation_dataset = lgb.Dataset(
-        features["validation"], label=labels["validation"], reference=train_dataset,
+        sequences["validation"], label=labels["validation"], reference=train_dataset,
         feature_name=feature_names, categorical_feature=[], free_raw_data=free_raw,
     )
     test_dataset = lgb.Dataset(
-        features["test"], label=labels["test"], reference=train_dataset,
+        sequences["test"], label=labels["test"], reference=train_dataset,
         feature_name=feature_names, categorical_feature=[], free_raw_data=free_raw,
     )
     schema_payload = {

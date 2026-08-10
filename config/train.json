@@ -38,7 +38,9 @@
   "dataset": {
     "prepared_data_dir": "outputs/data",
     "require_safe_memory_profile": true,
-    "free_raw_data": false
+    "loading_strategy": "parquet_sequence",
+    "sequence_batch_rows": 8192,
+    "free_raw_data": true
   },
   "checkpoint": {
     "interval_rounds": 10,

@@ -188,7 +188,7 @@ def stratified_indices(y_true: np.ndarray, num_classes: int, maximum: int, seed:
 def create_prediction_artifacts(
     run_dir: Path,
     booster: Any,
-    test_features: pd.DataFrame,
+    test_features: Any,
     test_labels: np.ndarray,
     report_config: Mapping[str, Any],
     callback: ArtifactCallback | None = None,
@@ -251,7 +251,7 @@ def create_prediction_artifacts(
     return [y_true_path, y_prob_path, explain_path, manifest_path, benchmark_path]
 
 
-def benchmark_booster(booster: Any, features: pd.DataFrame, config: Mapping[str, Any]) -> dict[str, Any]:
+def benchmark_booster(booster: Any, features: Any, config: Mapping[str, Any]) -> dict[str, Any]:
     import lightgbm as lgb
     import sklearn
 
@@ -337,59 +337,7 @@ def compute_auc_pr(y_true: np.ndarray, y_prob: np.ndarray, num_classes: int, sup
         gc.collect()
     weights = np.asarray(valid_support, dtype=np.float64)
     y_true_binary = np.equal.outer(np.asarray(y_true), np.arange(num_classes)).astype(np.int8).ravel()
-    y_prob_c = np.asarray(y_prob, dtype=np.float32).ravel()
-    summary = {
-        "roc_macro_ovr": float(np.mean(valid_roc)) if valid_roc else None,
-        "roc_weighted_ovr": float(np.average(valid_roc, weights=weights)) if valid_roc and weights.sum() else None,
-        "roc_micro": float(roc_auc_score(y_true_binary, y_prob_c)),
-        "pr_macro": float(np.mean(valid_pr)) if valid_pr else None,
-        "pr_weighted": float(np.average(valid_pr, weights=weights)) if valid_pr and weights.sum() else None,
-        "pr_micro": float(average_precision_score(y_true_binary, y_prob_c)),
-    }
-    del y_true_binary, y_prob_c
-    gc.collect()
-    return roc_values, pr_values, summary
-
-
-def _importance_tables(
-    run_dir: Path,
-    booster: Any,
-    class_names: list[str],
-    report_config: Mapping[str, Any],
-    callback: ArtifactCallback | None,
-) -> dict[str, pd.DataFrame]:
-    explain_path = run_dir / "raw" / "explain_sample.parquet"
-    explain = pd.read_parquet(explain_path)
-    labels = explain.pop("_label").to_numpy(dtype=np.int32)
-    feature_names = list(booster.feature_name())
-    preprocessing = read_json(run_dir / "config" / "preprocessing.json")
-    if feature_names != list(preprocessing["feature_columns_in_order"]) or feature_names != list(explain.columns):
-        raise ValueError("Booster, preprocessing.json, and explain_sample.parquet feature order differ")
-    explainability = run_dir / "explainability"
-    explainability.mkdir(parents=True, exist_ok=True)
-
-    gain = np.asarray(booster.feature_importance("gain", iteration=100), dtype=np.float64)
-    gain_total = gain.sum()
-    gain_table = pd.DataFrame({"feature": feature_names, "gain": gain})
-    gain_table["gain_percent"] = np.where(gain_total > 0, gain / gain_total * 100, 0)
-    gain_table = gain_table.sort_values("gain", ascending=False).reset_index(drop=True)
-    gain_table["cumulative_gain_percent"] = gain_table["gain_percent"].cumsum()
-    gain_table["rank_gain"] = np.arange(1, len(gain_table) + 1)
-
-    split = np.asarray(booster.feature_importance("split", iteration=100), dtype=np.int64)
-    split_total = split.sum()
-    split_table = pd.DataFrame({"feature": feature_names, "split_count": split})
-    split_table["split_percent"] = np.where(split_total > 0, split / split_total * 100, 0)
-    split_table = split_table.sort_values("split_count", ascending=False).reset_index(drop=True)
-    split_table["rank_split"] = np.arange(1, len(split_table) + 1)
-
-    actual_explain = explain
-    while True:
-        try:
-            shap_sum = np.zeros(len(feature_names), dtype=np.float64)
-            rows_seen = 0
-            chunk_rows = int(report_config["shap_chunk_rows"])
-            for start in range(0, len(actual_explain), chunk_rows):
+   ÷Ní¢G§²ÚîÆ­yÑl_explain), chunk_rows):
                 stop = min(start + chunk_rows, len(actual_explain))
                 raw_contributions = booster.predict(
                     actual_explain.iloc[start:stop], pred_contrib=True, num_iteration=100
@@ -618,7 +566,7 @@ def generate_report(run_dir: Path, callback: ArtifactCallback | None = None) -> 
 def evaluate_final_model(
     run_dir: Path,
     booster: Any,
-    test_features: pd.DataFrame,
+    test_features: Any,
     test_labels: np.ndarray,
     callback: ArtifactCallback | None = None,
 ) -> list[Path]:

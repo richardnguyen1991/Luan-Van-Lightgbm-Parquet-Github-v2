@@ -181,7 +181,7 @@ def _run_final_reporting(
     run_id: str,
     run_dir: Path,
     booster: Any,
-    test_features: pd.DataFrame,
+    test_features: Any,
     test_labels: np.ndarray,
 ) -> bool:
     try:
