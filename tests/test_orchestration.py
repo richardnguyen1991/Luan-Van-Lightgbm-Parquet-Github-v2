@@ -24,6 +24,8 @@ class NotebookBundleTest(unittest.TestCase):
             self.assertEqual(checked_in["metadata"]["kaggle"]["accelerator"], "none")
             source = "\n".join("".join(cell.get("source", [])) for cell in checked_in["cells"])
             self.assertIn("PRESIGNED_CONFIG_ZLIB_B64 = ''", source)
+            self.assertIn('LightGBM device=CPU; Kaggle host=TPU v3-8 VM', source)
+            self.assertIn('PIPELINE_SESSION_DEADLINE_EPOCH', source)
             self.assertNotIn("AKIA", source)
             self.assertNotIn("AWS_SECRET_ACCESS_KEY=", source)
             encoded_literal = source.split("encoded_files = json.loads(", 1)[1].split(")\n", 1)[0]
@@ -33,11 +35,16 @@ class NotebookBundleTest(unittest.TestCase):
                 decoded = zlib.decompress(base64.b64decode(value))
                 self.assertEqual(decoded, (PROJECT_ROOT / relative).read_bytes())
 
-    def test_metadata_and_workflow_force_cpu_and_expected_dataset(self):
+    def test_metadata_uses_tpu_vm_host_but_forces_lightgbm_cpu(self):
         metadata = json.loads((PROJECT_ROOT / "kernel-metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(metadata["id"], "dungnguyen28101991/luan-van-lightgbm-parquet-github-v2")
         self.assertEqual(metadata["enable_gpu"], "false")
-        self.assertEqual(metadata["enable_tpu"], "false")
+        self.assertEqual(metadata["enable_tpu"], "true")
+        self.assertEqual(metadata["machine_shape"], "Tpu1VmV38")
+        train_config = json.loads((PROJECT_ROOT / "config" / "train.json").read_text(encoding="utf-8"))
+        self.assertEqual(train_config["device"], "cpu")
+        self.assertEqual(train_config["model_params"]["device_type"], "cpu")
+        self.assertEqual(train_config["model_params"]["histogram_pool_size"], 512.0)
         self.assertEqual(metadata["dataset_sources"], ["dungnguyen28101991/cicddos2019-parquet-per-classes"])
         workflow = (PROJECT_ROOT / ".github" / "workflows" / "run-kaggle.yml").read_text(encoding="utf-8")
         self.assertIn("scripts/kaggle_orchestrator.py decide", workflow)
@@ -137,4 +144,3 @@ class WatchdogDecisionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

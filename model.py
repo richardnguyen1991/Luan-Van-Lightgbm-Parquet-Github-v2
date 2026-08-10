@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import gc
 import json
 import logging
 import math
 import re
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -61,6 +63,7 @@ def validate_training_config(config: Mapping[str, Any]) -> None:
         "bagging_freq": 0,
         "device_type": "cpu",
         "deterministic": True,
+        "histogram_pool_size": 512.0,
     }
     mismatches = {
         key: {"expected": expected, "observed": params.get(key)}
@@ -214,12 +217,20 @@ def _sequence_for_part(lgb: Any, prepared_dir: Path, part: Mapping[str, Any], fe
                 if len(self._cache) != self.rows or list(self._cache.columns) != self.columns:
                     raise AssertionError(f"Prepared Parquet metadata mismatch: {self.path}")
             selected = self._cache.iloc[index]
-            # LightGBM's Sequence sampler requires double precision sample rows;
-            # only this bounded batch is converted, never the full split.
-            values = selected.to_numpy(dtype=np.float64, copy=True)
+            # LightGBM's random Sequence sampler requires double precision rows.
+            # Sequential construction accepts float32, halving the transient batch.
+            dtype = np.float32 if isinstance(index, slice) else np.float64
+            values = selected.to_numpy(dtype=dtype, copy=True)
             release = not isinstance(index, slice) or index.stop is None or int(index.stop) >= self.rows
             if release:
                 self._cache = None
+                gc.collect()
+                if sys.platform.startswith("linux"):
+                    try:
+                        import ctypes
+                        ctypes.CDLL("libc.so.6").malloc_trim(0)
+                    except (ImportError, OSError):
+                        pass
             return values
 
     return ParquetPartSequence()
@@ -228,13 +239,18 @@ def _sequence_for_part(lgb: Any, prepared_dir: Path, part: Mapping[str, Any], fe
 def _read_split_labels(prepared_dir: Path, parts: Sequence[Mapping[str, Any]]) -> np.ndarray:
     if not parts:
         raise ValueError("Prepared split contains no Parquet parts")
-    arrays = [
-        pd.read_parquet(prepared_dir / str(part["path"]), columns=["_label"])["_label"].to_numpy(
-            dtype=np.int32, copy=True
-        )
-        for part in parts
-    ]
-    return np.concatenate(arrays) if len(arrays) > 1 else arrays[0]
+    labels = np.empty(sum(int(part["rows"]) for part in parts), dtype=np.int32)
+    offset = 0
+    for part in parts:
+        values = pd.read_parquet(
+            prepared_dir / str(part["path"]), columns=["_label"]
+        )["_label"].to_numpy(dtype=np.int32, copy=False)
+        expected_rows = int(part["rows"])
+        if len(values) != expected_rows:
+            raise AssertionError(f"Prepared label metadata mismatch: {part['path']}")
+        labels[offset:offset + expected_rows] = values
+        offset += expected_rows
+    return labels
 
 
 def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> DatasetBundle:
@@ -269,7 +285,10 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         sequences[split] = [
             _sequence_for_part(lgb, prepared, part, feature_names, batch_size) for part in parts
         ]
-    observed = sorted(set(np.concatenate([labels[name] for name in SPLIT_NAMES]).tolist()))
+    observed_set: set[int] = set()
+    for split in SPLIT_NAMES:
+        observed_set.update(int(value) for value in np.unique(labels[split]))
+    observed = sorted(observed_set)
     expected = list(range(len(label_mapping)))
     if observed != expected:
         raise AssertionError(f"label_mapping.json indices {expected} do not match observed labels {observed}")

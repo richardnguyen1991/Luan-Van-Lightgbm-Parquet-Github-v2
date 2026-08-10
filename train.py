@@ -70,7 +70,11 @@ def session_deadline(config: Mapping[str, Any]) -> float | None:
     usable_seconds = maximum_hours * 3600.0 - stop_before_minutes * 60.0
     if usable_seconds <= 0:
         raise ValueError("session.stop_before_minutes must be less than session.maximum_hours")
-    return time.monotonic() + usable_seconds
+    deadline_seconds = usable_seconds
+    external_deadline = os.environ.get("PIPELINE_SESSION_DEADLINE_EPOCH")
+    if external_deadline:
+        deadline_seconds = min(deadline_seconds, max(0.0, float(external_deadline) - time.time()))
+    return time.monotonic() + deadline_seconds
 
 
 def validate_resume_state(
