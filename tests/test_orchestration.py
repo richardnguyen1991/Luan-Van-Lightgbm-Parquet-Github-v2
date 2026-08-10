@@ -49,7 +49,7 @@ class NotebookBundleTest(unittest.TestCase):
         workflow = (PROJECT_ROOT / ".github" / "workflows" / "run-kaggle.yml").read_text(encoding="utf-8")
         self.assertIn('assert metadata["enable_tpu"] == "true"', workflow)
         self.assertIn('assert metadata["machine_shape"] == "Tpu1VmV38"', workflow)
-        self.assertIn("assert '\"device_type\": \"cpu\"' in source", workflow)
+        self.assertIn('assert "LightGBM device=CPU" in source', workflow)
         self.assertIn("scripts/kaggle_orchestrator.py decide", workflow)
         self.assertIn('"${{ github.event_name }}" == "push"', workflow)
         self.assertIn("scripts/generate_presigned_config.py", workflow)

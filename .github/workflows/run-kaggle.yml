@@ -196,7 +196,7 @@ jobs:
           assert metadata["machine_shape"] == "Tpu1VmV38"
           assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet-per-classes"]
           source = "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
-          assert '"device_type": "cpu"' in source
+          assert "LightGBM device=CPU" in source
           assert "PRESIGNED_CONFIG_ZLIB_B64" in source
           assert "AWS_SECRET_ACCESS_KEY=" not in source
           assert "AKIA" not in source
