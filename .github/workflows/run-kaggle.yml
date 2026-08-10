@@ -195,11 +195,13 @@ jobs:
           assert metadata["enable_tpu"] == "false"
           assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet-per-classes"]
           source = "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
-          assert "PRESIGNED_CONFIG_B64" in source
+          assert "PRESIGNED_CONFIG_ZLIB_B64" in source
           assert "AWS_SECRET_ACCESS_KEY=" not in source
           assert "AKIA" not in source
           assert notebook["nbformat"] == 4
-          print("Kaggle bundle validation passed")
+          notebook_bytes = (bundle / metadata["code_file"]).stat().st_size
+          assert notebook_bytes <= 900_000, f"Kaggle notebook bundle is unexpectedly large: {notebook_bytes} bytes"
+          print(f"Kaggle bundle validation passed: {notebook_bytes} bytes")
 
       - name: Push and start Kaggle notebook
         if: steps.decision.outputs.should_push == 'true'
@@ -225,3 +227,4 @@ jobs:
           echo "Current iteration: ${{ steps.decision.outputs.current_iteration }}"
           echo "Push next session: ${{ steps.decision.outputs.should_push }}"
           echo "Reason: ${{ steps.decision.outputs.reason }}"
+

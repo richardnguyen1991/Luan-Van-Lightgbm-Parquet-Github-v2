@@ -155,6 +155,38 @@ class S3Store:
             return {"get": value, "head": value}
         return value
 
+    def _presigned_part_upload(self, source: Path, final_key: str) -> bool | None:
+        """Upload an immutable preprocessing part through a prefix-limited POST."""
+        assert self.presigned is not None
+        for raw_prefix, entry in self.presigned.get("part_uploads", {}).items():
+            part_prefix = str(raw_prefix).rstrip("/")
+            if final_key != f"{part_prefix}/{source.name}":
+                continue
+            try:
+                with source.open("rb") as handle:
+                    def post_part() -> Any:
+                        handle.seek(0)
+                        return self._requests().post(
+                            entry["url"],
+                            data=dict(entry["fields"]),
+                            files={"file": (source.name, handle)},
+                            timeout=1800,
+                        )
+
+                    response = self._retry("presigned_post_part", post_part)
+                response.raise_for_status()
+                return True
+            except Exception as exc:
+                if self.required:
+                    raise
+                LOGGER.warning(
+                    "Presigned S3 part upload failed; local part remains at %s: %s",
+                    source,
+                    type(exc).__name__,
+                )
+                return False
+        return None
+
     @staticmethod
     def _not_found(exc: Exception) -> bool:
         response = getattr(exc, "response", {})
@@ -193,6 +225,9 @@ class S3Store:
         if self.presigned is not None:
             entry = self.presigned.get("uploads", {}).get(final_key)
             if not entry:
+                part_result = self._presigned_part_upload(source, final_key)
+                if part_result is not None:
+                    return part_result
                 message = f"No presigned atomic-upload operation for {final_key}"
                 if self.required:
                     raise KeyError(message)
@@ -516,3 +551,4 @@ class CheckpointManager:
         files = sorted(directory.glob("model_round_*.txt"))
         for old in files[:-keep] if keep else files:
             old.unlink()
+

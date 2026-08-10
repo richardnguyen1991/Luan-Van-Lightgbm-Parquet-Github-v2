@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 from build_kaggle_notebook import EMBEDDED_FILES, build_notebook  # noqa: E402
-from generate_presigned_config import run_keys  # noqa: E402
+from generate_presigned_config import existing_preprocessing_part_keys, run_keys  # noqa: E402
 from kaggle_orchestrator import decide_next_session  # noqa: E402
 
 
@@ -23,7 +23,7 @@ class NotebookBundleTest(unittest.TestCase):
             self.assertEqual(checked_in, expected)
             self.assertEqual(checked_in["metadata"]["kaggle"]["accelerator"], "none")
             source = "\n".join("".join(cell.get("source", [])) for cell in checked_in["cells"])
-            self.assertIn("PRESIGNED_CONFIG_B64 = ''", source)
+            self.assertIn("PRESIGNED_CONFIG_ZLIB_B64 = ''", source)
             self.assertNotIn("AKIA", source)
             self.assertNotIn("AWS_SECRET_ACCESS_KEY=", source)
             encoded_literal = source.split("encoded_files = json.loads(", 1)[1].split(")\n", 1)[0]
@@ -56,8 +56,6 @@ class NotebookBundleTest(unittest.TestCase):
         expected = {
             "project/active_run.json",
             "project/lightgbm_20260809-1200/preprocessing/progress.json",
-            "project/lightgbm_20260809-1200/preprocessing/splits/train/part-000000.parquet",
-            "project/lightgbm_20260809-1200/preprocessing/splits/validation/part-000511.parquet",
             "project/lightgbm_20260809-1200/checkpoints/last_model.txt",
             "project/lightgbm_20260809-1200/checkpoints/training_state.json",
             "project/lightgbm_20260809-1200/checkpoints/final_model_round_100.txt",
@@ -67,6 +65,25 @@ class NotebookBundleTest(unittest.TestCase):
             "project/lightgbm_20260809-1200/figures/roc_curves.pdf",
         }
         self.assertTrue(expected.issubset(keys))
+        self.assertFalse(any("/preprocessing/splits/" in key for key in keys))
+
+    def test_only_committed_preprocessing_parts_receive_download_urls(self):
+        class Body:
+            def read(self):
+                return json.dumps({"parts": {
+                    "train": [{"path": "splits/train/part-000000.parquet"}],
+                    "validation": [{"path": "splits/validation/part-000001.parquet"}],
+                }}).encode("utf-8")
+
+        class Client:
+            def get_object(self, **kwargs):
+                return {"Body": Body()}
+
+        keys = existing_preprocessing_part_keys(Client(), "bucket", "project", "run")
+        self.assertEqual(keys, {
+            "project/run/preprocessing/splits/train/part-000000.parquet",
+            "project/run/preprocessing/splits/validation/part-000001.parquet",
+        })
 
 
 class WatchdogDecisionTest(unittest.TestCase):
@@ -119,3 +136,4 @@ class WatchdogDecisionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -272,9 +272,61 @@ class CheckpointTest(unittest.TestCase):
                 else:
                     os.environ[name] = value
 
+    def test_presigned_part_upload_uses_prefix_limited_post(self) -> None:
+        class Response:
+            def raise_for_status(self):
+                return None
+
+        class FakeRequests:
+            def __init__(self):
+                self.calls = []
+
+            def post(self, url, data=None, files=None, timeout=None):
+                filename, handle = files["file"]
+                self.calls.append((url, data["key"], filename, handle.read()))
+                return Response()
+
+        old_values = {name: os.environ.get(name) for name in ("S3_BUCKET", "S3_PREFIX", "S3_PRESIGNED_CONFIG_PATH")}
+        try:
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                source = root / "part-000007.parquet"
+                source.write_bytes(b"immutable-part")
+                prefix = "project/run/preprocessing/splits/train"
+                presigned = {
+                    "bucket": "bucket", "s3_prefix": "project", "uploads": {}, "downloads": {},
+                    "part_uploads": {prefix: {
+                        "url": "post-url", "fields": {"key": f"{prefix}/${{filename}}"},
+                    }},
+                }
+                config_path = root / "presigned.json"
+                config_path.write_text(json.dumps(presigned), encoding="utf-8")
+                os.environ.update({
+                    "S3_BUCKET": "bucket", "S3_PREFIX": "project",
+                    "S3_PRESIGNED_CONFIG_PATH": str(config_path),
+                })
+                _, s3_config = self._configs()
+                s3_config = dict(s3_config)
+                s3_config.update({"enabled": True, "upload_required": True})
+                store = S3Store(s3_config)
+                fake = FakeRequests()
+                store._requests = lambda: fake
+                key = f"{prefix}/{source.name}"
+                self.assertTrue(store.upload_atomic(source, key))
+                self.assertEqual(fake.calls, [
+                    ("post-url", f"{prefix}/${{filename}}", source.name, b"immutable-part")
+                ])
+        finally:
+            for name, value in old_values.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
     def test_canonical_hash_is_order_independent_for_mappings(self) -> None:
         self.assertEqual(canonical_hash({"a": 1, "b": 2}), canonical_hash({"b": 2, "a": 1}))
 
 
 if __name__ == "__main__":
     unittest.main()
+

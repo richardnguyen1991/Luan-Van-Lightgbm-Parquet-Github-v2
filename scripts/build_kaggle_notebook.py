@@ -45,7 +45,7 @@ def build_notebook(
     train_config = f"config/train{suffix}.json"
     embedded = json.dumps(encoded_sources(), sort_keys=True)
     presigned_bytes = Path(presigned_config).read_bytes() if presigned_config else b""
-    presigned_b64 = base64.b64encode(presigned_bytes).decode("ascii")
+    presigned_b64 = base64.b64encode(zlib.compress(presigned_bytes, level=9)).decode("ascii") if presigned_bytes else ""
     description = (
         "Production: full natural-distribution train split and exactly 100 boosting iterations."
         if profile == "production"
@@ -74,10 +74,10 @@ for relative, encoded_content in encoded_files.items():
     destination.write_bytes(zlib.decompress(base64.b64decode(encoded_content)))
 print(f"Extracted {{len(encoded_files)}} versioned source/config files")
 '''
-    secrets = f'''PRESIGNED_CONFIG_B64 = {presigned_b64!r}
-if PRESIGNED_CONFIG_B64:
+    secrets = f'''PRESIGNED_CONFIG_ZLIB_B64 = {presigned_b64!r}
+if PRESIGNED_CONFIG_ZLIB_B64:
     presigned_path = PROJECT_DIR / "s3_presigned_config.json"
-    presigned_path.write_bytes(base64.b64decode(PRESIGNED_CONFIG_B64))
+    presigned_path.write_bytes(zlib.decompress(base64.b64decode(PRESIGNED_CONFIG_ZLIB_B64)))
     presigned = json.loads(presigned_path.read_text(encoding="utf-8"))
     os.environ["S3_PRESIGNED_CONFIG_PATH"] = str(presigned_path)
     os.environ["S3_BUCKET"] = presigned["bucket"]
@@ -244,3 +244,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
