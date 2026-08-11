@@ -6,9 +6,9 @@
   "kernel_type": "notebook",
   "is_private": "true",
   "enable_gpu": "false",
-  "enable_tpu": "true",
+  "enable_tpu": "false",
   "enable_internet": "true",
-  "machine_shape": "Tpu1VmV38",
+  "machine_shape": "",
   "dataset_sources": [
     "dungnguyen28101991/cicddos2019-parquet-per-classes"
   ],

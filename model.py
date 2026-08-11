@@ -63,7 +63,10 @@ def validate_training_config(config: Mapping[str, Any]) -> None:
         "bagging_freq": 0,
         "device_type": "cpu",
         "deterministic": True,
-        "histogram_pool_size": 512.0,
+        "histogram_pool_size": 128.0,
+        "use_quantized_grad": True,
+        "num_grad_quant_bins": 16,
+        "quant_train_renew_leaf": True,
     }
     mismatches = {
         key: {"expected": expected, "observed": params.get(key)}

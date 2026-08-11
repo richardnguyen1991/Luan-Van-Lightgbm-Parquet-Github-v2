@@ -192,8 +192,8 @@ jobs:
           metadata = json.loads((bundle / "kernel-metadata.json").read_text())
           notebook = json.loads((bundle / metadata["code_file"]).read_text())
           assert metadata["enable_gpu"] == "false"
-          assert metadata["enable_tpu"] == "true"
-          assert metadata["machine_shape"] == "Tpu1VmV38"
+          assert metadata["enable_tpu"] == "false"
+          assert metadata["machine_shape"] == ""
           assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet-per-classes"]
           source = "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
           assert "LightGBM device=CPU" in source

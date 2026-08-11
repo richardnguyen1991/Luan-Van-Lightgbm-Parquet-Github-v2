@@ -61,7 +61,7 @@ import time
 import zlib
 
 PROJECT_NAME = "Luan-Van-LightGBM-Parquet-Github-v2"
-SESSION_MAXIMUM_HOURS = 8.5
+SESSION_MAXIMUM_HOURS = 12.0
 SESSION_STOP_BEFORE_MINUTES = 30.0
 os.environ["PIPELINE_SESSION_DEADLINE_EPOCH"] = str(
     time.time() + SESSION_MAXIMUM_HOURS * 3600.0 - SESSION_STOP_BEFORE_MINUTES * 60.0
@@ -141,7 +141,7 @@ if missing:
 import lightgbm as lgb
 import psutil
 host_ram_gib = psutil.virtual_memory().total / (1024 ** 3)
-print(f"LightGBM={lgb.__version__}; LightGBM device=CPU; Kaggle host=TPU v3-8 VM; RAM={host_ram_gib:.1f} GiB")
+print(f"LightGBM={lgb.__version__}; LightGBM device=CPU; Kaggle accelerator=none; RAM={host_ram_gib:.1f} GiB")
 '''
     prepare = f'''preferred = Path("/kaggle/input/cicddos2019-parquet-per-classes")
 if preferred.exists():
@@ -162,7 +162,7 @@ if os.environ.get("RUN_ID"):
     data_command.extend([
         "--s3-config", str(SOURCE_DIR / "{train_config}"),
         "--run-id", os.environ["RUN_ID"],
-        "--maximum-hours", "8.5",
+        "--maximum-hours", "12",
         "--stop-before-minutes", "30",
     ])
 data_result = subprocess.run(data_command, cwd=SOURCE_DIR, check=False)

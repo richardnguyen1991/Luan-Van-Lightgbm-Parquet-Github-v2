@@ -33,14 +33,17 @@
     "bagging_seed": 2026,
     "feature_fraction_seed": 2026,
     "data_random_seed": 2026,
-    "histogram_pool_size": 512.0,
+    "histogram_pool_size": 128.0,
+    "use_quantized_grad": true,
+    "num_grad_quant_bins": 16,
+    "quant_train_renew_leaf": true,
     "verbosity": 1
   },
   "dataset": {
     "prepared_data_dir": "outputs/data",
     "require_safe_memory_profile": true,
     "loading_strategy": "parquet_sequence",
-    "sequence_batch_rows": 8192,
+    "sequence_batch_rows": 4096,
     "free_raw_data": true
   },
   "checkpoint": {
@@ -49,7 +52,7 @@
     "local_keep_round_files": 2
   },
   "session": {
-    "maximum_hours": 8.5,
+    "maximum_hours": 12.0,
     "stop_before_minutes": 30.0,
     "max_rounds_this_session": null
   },

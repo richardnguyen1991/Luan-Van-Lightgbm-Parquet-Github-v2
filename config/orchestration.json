@@ -5,8 +5,8 @@
   "target_iteration": 100,
   "schedule_minutes": 30,
   "recent_push_guard_minutes": 45,
-  "running_heartbeat_stale_hours": 10,
+  "running_heartbeat_stale_hours": 13,
   "maximum_session_attempts": 110,
   "maximum_stagnant_restarts": 3,
-  "kaggle_session_timeout_seconds": 32400
+  "kaggle_session_timeout_seconds": 43200
 }
