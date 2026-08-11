@@ -589,4 +589,3 @@ class CheckpointManager:
         files = sorted(directory.glob("model_round_*.txt"))
         for old in files[:-keep] if keep else files:
             old.unlink()
-

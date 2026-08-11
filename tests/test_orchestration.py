@@ -26,6 +26,8 @@ class NotebookBundleTest(unittest.TestCase):
             self.assertIn("PRESIGNED_CONFIG_ZLIB_B64 = ''", source)
             self.assertIn('LightGBM device=CPU; Kaggle accelerator=none', source)
             self.assertIn('PIPELINE_SESSION_DEADLINE_EPOCH', source)
+            self.assertIn('Embedded source integrity failure', source)
+            self.assertIn('payload.decode("utf-8")', source)
             self.assertNotIn("AKIA", source)
             self.assertNotIn("AWS_SECRET_ACCESS_KEY=", source)
             encoded_literal = source.split("encoded_files = json.loads(", 1)[1].split(")\n", 1)[0]

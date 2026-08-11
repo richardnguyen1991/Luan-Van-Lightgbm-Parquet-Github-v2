@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import zlib
 from pathlib import Path
@@ -27,8 +28,17 @@ def markdown_cell(source: str) -> dict[str, Any]:
 
 
 def encoded_sources() -> dict[str, str]:
+    encoded = {}
+    for relative in EMBEDDED_FILES:
+        payload = (PROJECT_ROOT / relative).read_bytes()
+        payload.decode("utf-8")
+        encoded[relative] = base64.b64encode(zlib.compress(payload, level=9)).decode("ascii")
+    return encoded
+
+
+def source_hashes() -> dict[str, str]:
     return {
-        relative: base64.b64encode(zlib.compress((PROJECT_ROOT / relative).read_bytes(), level=9)).decode("ascii")
+        relative: hashlib.sha256((PROJECT_ROOT / relative).read_bytes()).hexdigest()
         for relative in EMBEDDED_FILES
     }
 
@@ -44,6 +54,7 @@ def build_notebook(
     data_config = f"config/data{suffix}.json"
     train_config = f"config/train{suffix}.json"
     embedded = json.dumps(encoded_sources(), sort_keys=True)
+    embedded_hashes = json.dumps(source_hashes(), sort_keys=True)
     presigned_bytes = Path(presigned_config).read_bytes() if presigned_config else b""
     presigned_b64 = base64.b64encode(zlib.compress(presigned_bytes, level=9)).decode("ascii") if presigned_bytes else ""
     description = (
@@ -53,6 +64,7 @@ def build_notebook(
     )
     extract = f'''from pathlib import Path
 import base64
+import hashlib
 import json
 import os
 import subprocess
@@ -75,10 +87,16 @@ for directory in (SOURCE_DIR, PREPARED_DIR, RUNS_DIR):
     directory.mkdir(parents=True, exist_ok=True)
 
 encoded_files = json.loads({json.dumps(embedded)})
+expected_hashes = json.loads({json.dumps(embedded_hashes)})
 for relative, encoded_content in encoded_files.items():
     destination = SOURCE_DIR / relative
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_bytes(zlib.decompress(base64.b64decode(encoded_content)))
+    payload = zlib.decompress(base64.b64decode(encoded_content))
+    payload.decode("utf-8")
+    observed_hash = hashlib.sha256(payload).hexdigest()
+    if observed_hash != expected_hashes[relative]:
+        raise RuntimeError(f"Embedded source integrity failure: {{relative}}")
+    destination.write_bytes(payload)
 print(f"Extracted {{len(encoded_files)}} versioned source/config files")
 '''
     secrets = f'''PRESIGNED_CONFIG_ZLIB_B64 = {presigned_b64!r}

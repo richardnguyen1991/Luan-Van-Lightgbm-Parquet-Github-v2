@@ -343,4 +343,464 @@ def profile_dataset(
         "total_selected_rows": total_rows,
         "feature_count": feature_count,
         "source_compressed_bytes": total_compressed,
-        "estimated_numeric_matrix_bytes": numeric_matrix_byÛŽ{¶‰žËkºwµçM½±Õµ¹}…¹‘¥‘…Ñ•Ì‰t¤(€€€¥˜Ñ…É•Ð¥Ì9½¹”…¹¹½Ð‘…Ñ…Í•Ñ}™œ¹•Ð ‰±…‰•±}™É½µ}™¥±•¹…µ•}¥™}µ¥ÍÍ¥¹œˆ°…±Í”¤è(€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ‰9¼Ñ…É•Ð½±Õµ¸™½Õ¹…¹™¥±•¹…µ”µ‘•É¥Ù•±…‰•±Ì…É”‘¥Í…‰±•ˆ¤(€€€É½ÕÁ}½±Õµ¹Ì€ôÍ•±•Ñ}É½ÕÁ}½±Õµ¹Ì¡½µµ½¹}½±Õµ¹Ì°‘…Ñ…Í•Ñ}™œ¹•Ð ‰É½ÕÁ}½±Õµ¹}…¹‘¥‘…Ñ•Ìˆ°mt¤¤(€€€¥˜ÍÁ±¥Ñ}™œ¹•Ð ‰ÍÑÉ…Ñ•äˆ¤€ôô€‰É½ÕÁ}…Ý…É”ˆ…¹¹½ÐÉ½ÕÁ}½±Õµ¹Ìè(€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ‰É½ÕÁ}…Ý…É”ÍÁ±¥ÐÝ…ÌÉ•ÅÕ¥É•‰ÕÐ¹¼½¹™¥ÕÉ•É½ÕÀ½±Õµ¹ÌÝ•É”™½Õ¹ˆ¤(€€€É½ÕÁ}…Ý…É”€ô‰½½°¡É½ÕÁ}½±Õµ¹Ì¤…¹ÍÁ±¥Ñ}™œ¹•Ð ‰ÍÑÉ…Ñ•äˆ¤¥¸ì‰É½ÕÁ}…Ý…É”ˆ°€‰…ÕÑ½}É½ÕÁ}…Ý…É”‰ô(€€€™•…ÑÕÉ•Ì°‘É½Á}É•…Í½¹Ì°…ÉÉ½Ý}ÑåÁ•Ì€ô}‘É½Á}É•…Í½¹Ì (€€€€€€€½µµ½¹}½±Õµ¹Ì°Ñ…É•Ð°É½ÕÁ}½±Õµ¹Ì°Í¡•µ…ÍlÁt°½¹™¥l‰ÁÉ•ÁÉ½•ÍÍ¥¹œ‰t(€€€€¤(€€€™½È½±Õµ¸¥¸Í½ÉÑ•¡Í•Ð¹Õ¹¥½¸ ©½±Õµ¹}Í•ÑÌ¤¹‘¥™™•É•¹”¡½µµ½¹}½±Õµ¹Ì¤¤è(€€€€€€€‘É½Á}É•…Í½¹Ím½±Õµ¹t€ô€‰¹½ÐÁÉ•Í•¹Ð¥¸•Ù•ÉäÍ½ÕÉ”A…ÉÅÕ•ÐÍ¡•µ„ˆ(€€€¥˜¹½Ð™•…ÑÕÉ•Ìè(€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ‰9¼¹Õµ•É¥Œ™•…ÑÕÉ”½±Õµ¹ÌÉ•µ…¥¸…™Ñ•È•á±ÕÍ¥½¹Ìˆ¤((€€€ÁÉ½™¥±”€ôÁÉ½™¥±•}‘…Ñ…Í•Ð¡™¥±•Ì°É½½Ð°±•¸¡™•…ÑÕÉ•Ì¤°½¹™¥œ¤(€€€ÁÉ½™¥±•l‰Í½ÕÉ•}‘ÑåÁ•Ì‰t€ô…ÉÉ½Ý}ÑåÁ•Ì(€€€…Ñ½µ¥}©Í½¹}‘ÕµÀ¡ÁÉ½™¥±”°‘•ÍÑ¥¹…Ñ¥½¸€¼€‰‘…Ñ…}ÁÉ½™¥±”¹©Í½¸ˆ¤((€€€™¥¹•ÉÁÉ¥¹Ñ}Á…å±½…€ôì(€€€€€€€€‰½¹™¥œˆè½¹™¥œ°(€€€€€€€€‰™¥±•Ìˆèl(€€€€€€€€€€€ì(€€€€€€€€€€€€€€€€‰Á…Ñ ˆèÁ…Ñ ¹É•±…Ñ¥Ù•}Ñ¼¡É½½Ð¤¹…Í}Á½Í¥à ¤°(€€€€€€€€€€€€€€€€‰É½ÝÌˆè¥¹Ð¡ÁÄ¹A…ÉÅÕ•Ñ¥±”¡Á…Ñ ¤¹µ•Ñ…‘…Ñ„¹¹Õµ}É½ÝÌ¤°(€€€€€€€€€€€€€€€€‰‰åÑ•Ìˆè¥¹Ð¡Á…Ñ ¹ÍÑ…Ð ¤¹ÍÑ}Í¥é”¤°(€€€€€€€€€€€ô(€€€€€€€€€€€™½ÈÁ…Ñ ¥¸™¥±•Ì(€€€€€€€t°(€€€€€€€€‰™•…ÑÕÉ•Ìˆè™•…ÑÕÉ•Ì°(€€€€€€€€‰Ñ…É•ÐˆèÑ…É•Ð°(€€€€€€€€‰É½ÕÁ}½±Õµ¹ÌˆèÉ½ÕÁ}½±Õµ¹Ì°(€€€ô(€€€™¥¹•ÉÁÉ¥¹Ð€ô¡…Í¡±¥ˆ¹Í¡„ÈÔØ (€€€€€€€©Í½¸¹‘ÕµÁÌ¡™¥¹•ÉÁÉ¥¹Ñ}Á…å±½…°Í½ÉÑ}­•åÌõQÉÕ”°Í•Á…É…Ñ½ÉÌô ˆ°ˆ°€ˆèˆ¤¤¹•¹½‘” ‰ÕÑ˜´àˆ¤(€€€€¤¹¡•á‘¥•ÍÐ ¤(€€€ÁÉ½É•ÍÌ€ôÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹É•ÍÑ½É” ¤¥˜ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¥Ì¹½Ð9½¹”•±Í”9½¹”(€€€¥˜ÁÉ½É•ÍÌ…¹ÁÉ½É•ÍÌ¹•Ð ‰™¥¹•ÉÁÉ¥¹Ðˆ¤€„ô™¥¹•ÉÁÉ¥¹Ðè(€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ‰I•µ½Ñ”ÁÉ•ÁÉ½•ÍÍ¥¹œ¡•­Á½¥¹Ð‘½•Ì¹½Ðµ…Ñ Ñ¡”ÕÉÉ•¹Ð‘…Ñ…Í•Ð½½¹™¥ÕÉ…Ñ¥½¸ˆ¤(€€€¥˜ÁÉ½É•ÍÌ…¹ÁÉ½É•ÍÌ¹•Ð ‰ÍÑ…ÑÕÌˆ¤€ôô€‰½µÁ±•Ñ”ˆè(€€€€€€€É•ÑÕÉ¸©Í½¸¹±½…‘Ì ¡‘•ÍÑ¥¹…Ñ¥½¸€¼€‰Í…µÁ±•}µ…¹¥™•ÍÐ¹©Í½¸ˆ¤¹É•…‘}Ñ•áÐ¡•¹½‘¥¹œô‰ÕÑ˜´àˆ¤¤((€€€É…Ñ¥½Ì€ôm™±½…Ð¡ÍÁ±¥Ñ}™m¹…µ•t¤™½È¹…µ”¥¸MA1%Q}95Mt(€€€±…‰•±Í}Í••¸èÍ•ÑmÍÑÉt€ôÍ•Ð¡ÁÉ½É•ÍÌ¹•Ð ‰±…‰•±Í}Í••¸ˆ°mt¤¤¥˜ÁÉ½É•ÍÌ•±Í”Í•Ð ¤(€€€ÍÁ±¥Ñ}½Õ¹ÑÌ€ôì(€€€€€€€¹…µ”è½Õ¹Ñ•È ¡ÁÉ½É•ÍÌ½Èíô¤¹•Ð ‰ÍÁ±¥Ñ}½Õ¹ÑÌˆ°íô¤¹•Ð¡¹…µ”°íô¤¤™½È¹…µ”¥¸MA1%Q}95L(€€€ô(€€€Í½ÕÉ•}¥¹Ù•¹Ñ½Éäè±¥ÍÑm‘¥ÑmÍÑÈ°¹åut€ô±¥ÍÐ ¡ÁÉ½É•ÍÌ½Èíô¤¹•Ð ‰Í½ÕÉ•}¥¹Ù•¹Ñ½Éäˆ°mt¤¤(€€€½µÁ±•Ñ•‘}™¥±•Ì€ôÍ•Ð ¡ÁÉ½É•ÍÌ½Èíô¤¹•Ð ‰½µÁ±•Ñ•‘}™¥±•Ìˆ°mt¤¤(€€€ÝÉ¥Ñ•È€ôMÁ±¥ÑA…ÉÑ]É¥Ñ•È (€€€€€€€‘•ÍÑ¥¹…Ñ¥½¸°(€€€€€€€ÍÑÈ¡½¹™¥l‰½ÕÑÁÕÐ‰ul‰½µÁÉ•ÍÍ¥½¸‰t¤°(€€€€€€€¥¹Ð¡½¹™¥l‰½ÕÑÁÕÐ‰ul‰É½ÝÍ}Á•É}Á…ÉÐ‰t¤°(€€€€€€€•á¥ÍÑ¥¹}Á…ÉÑÌô¡ÁÉ½É•ÍÌ½Èíô¤¹•Ð ‰Á…ÉÑÌˆ°íô¤°(€€€€€€€ÕÁ±½…‘}…±±‰…¬õÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹ÕÁ±½…‘}Á…ÉÐ¥˜ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¥Ì¹½Ð9½¹”•±Í”9½¹”°(€€€€¤(€€€…Õ‘¥Ñ}‰…­•¹€ôÍÑÈ¡½¹™¥l‰…Õ‘¥Ð‰t¹•Ð ‰‰…­•¹ˆ°€‰ÍÅ±¥Ñ”ˆ¤¤(€€€¥˜…Õ‘¥Ñ}‰…­•¹€ôô€‰‘•Ñ•Éµ¥¹¥ÍÑ¥}ÁÉ½½˜ˆè(€€€€€€€…Õ‘¥Ñ½Èè¹ä€ô•Ñ•Éµ¥¹¥ÍÑ¥1•…­…•Õ‘¥Ñ½È ¤(€€€•±¥˜ÁÉ½É•ÍÌè(€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ‰ME1¥Ñ”±•…­…”…Õ‘¥Ñ¥¹œ…¹¹½ÐÉ•ÍÕµ”ìÕÍ”…Õ‘¥Ð¹‰…­•¹õ‘•Ñ•Éµ¥¹¥ÍÑ¥}ÁÉ½½˜ˆ¤(€€€•±Í”è(€€€€€€€…Õ‘¥Ñ½È€ôá…Ñ1•…­…•Õ‘¥Ñ½È (€€€€€€€€€€€‘•ÍÑ¥¹…Ñ¥½¸€¼€ˆ¹±•…­…•}…Õ‘¥Ð¹ÍÅ±¥Ñ”ˆ°¥¹Ð¡½¹™¥l‰…Õ‘¥Ð‰ul‰ÍÅ±¥Ñ•}‰…Ñ¡}É½ÝÌ‰t¤(€€€€€€€€¤(€€€Í…µÁ±•Í}Á•É}™¥±”€ô‘…Ñ…Í•Ñ}™œ¹•Ð ‰Í…µÁ±•Í}Á•É}™¥±”ˆ¤(€€€¥˜ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¥Ì¹½Ð9½¹”è(€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹Í•Ñ}…Ñ¥Ù” ‰ÁÉ•Á…É¥¹œˆ°±•¸¡½µÁ±•Ñ•‘}™¥±•Ì¤°±•¸¡™¥±•Ì¤¤(€€€ÑÉäè(€€€€€€€™½ÈÁ…Ñ ¥¸™¥±•Ìè(€€€€€€€€€€€É•±…Ñ¥Ù”€ôÁ…Ñ ¹É•±…Ñ¥Ù•}Ñ¼¡É½½Ð¤¹…Í}Á½Í¥à ¤(€€€€€€€€€€€¥˜É•±…Ñ¥Ù”¥¸½µÁ±•Ñ•‘}™¥±•Ìè(€€€€€€€€€€€€€€€½¹Ñ¥¹Õ”(€€€€€€€€€€€™¥±•}¥€ôÍ½ÕÉ•}™¥±•}¥¡É•±…Ñ¥Ù”¤(€€€€€€€€€€€Á¡åÍ¥…±}É½ÝÌ€ô¥¹Ð¡ÁÄ¹A…ÉÅÕ•Ñ¥±”¡Á…Ñ ¤¹µ•Ñ…‘…Ñ„¹¹Õµ}É½ÝÌ¤(€€€€€€€€€€€Í•±•Ñ•‘}É½ÝÌ€ôµ¥¸¡Á¡åÍ¥…±}É½ÝÌ°¥¹Ð¡Í…µÁ±•Í}Á•É}™¥±”¤¤¥˜Í…µÁ±•Í}Á•É}™¥±”¥Ì¹½Ð9½¹”•±Í”9½¹”(€€€€€€€€€€€É½ÝÍ}ÁÉ½•ÍÍ•€ô€À(€€€€€€€€€€€™½È™É…µ”°½™™Í•Ð¥¸}¥Ñ•É}™¥±•}¡Õ¹­Ì¡Á…Ñ °Í•±•Ñ•‘}É½ÝÌ¤è(€€€€€€€€€€€€€€€É½Ý}¥‘Ì€ô¹À¹…É…¹”¡½™™Í•Ð°½™™Í•Ð€¬±•¸¡™É…µ”¤°‘ÑåÁ”õ¹À¹Õ¥¹ÐØÐ¤(€€€€€€€€€€€€€€€¥˜Ñ…É•Ð¥Ì9½¹”è(€€€€€€€€€€€€€€€€€€€±…‰•±Ì€ôÁ¹M•É¥•Ì¡mÁ…Ñ ¹ÍÑ•µt€¨±•¸¡™É…µ”¤°‘ÑåÁ”ô‰ÍÑÉ¥¹œˆ¤(€€€€€€€€€€€€€€€•±Í”è(€€€€€€€€€€€€€€€€€€€±…‰•±Ì€ô™É…µ•mÑ…É•Ñt¹µ…À¡}…¹½¹¥…±}±…‰•°¤¹…ÍÑåÁ” ‰ÍÑÉ¥¹œˆ¤(€€€€€€€€€€€€€€€±…‰•±Í}Í••¸¹ÕÁ‘…Ñ”¡±…‰•±Ì¹Õ¹¥ÅÕ” ¤¹Ñ½±¥ÍÐ ¤¤(€€€€€€€€€€€€€€€¥˜É½ÕÁ}…Ý…É”è(€€€€€€€€€€€€€€€€€€€¡…Í¡•Ì€ôÉ½ÕÁ}¡…Í¡•Ì¡™É…µ”°É½ÕÁ}½±Õµ¹Ì¤(€€€€€€€€€€€€€€€€€€€½‘•Ì€ôÍÁ±¥Ñ}½‘•Í}™É½µ}¡…Í¡•Ì¡¡…Í¡•Ì°É…Ñ¥½Ì°¥¹Ð¡ÍÁ±¥Ñ}™l‰Í••‰t¤¤(€€€€€€€€€€€€€€€•±Í”è(€€€€€€€€€€€€€€€€€€€¡…Í¡•Ì€ô¹À¹•µÁÑä À°‘ÑåÁ”õ¹À¹Õ¥¹ÐØÐ¤(€€€€€€€€€€€€€€€€€€€½‘•Ì€ô…ÍÍ¥¹}É½Ý}ÍÁ±¥Ñ}½‘•Ì¡™¥±•}¥°É½Ý}¥‘Ì°É…Ñ¥½Ì°¥¹Ð¡ÍÁ±¥Ñ}™l‰Í••‰t¤¤(€€€€€€€€€€€€€€€¹Õµ•É¥Œ€ôÁ¹…Ñ…É…µ”¡¥¹‘•àõ™É…µ”¹¥¹‘•à¤(€€€€€€€€€€€€€€€™½È™•…ÑÕÉ”¥¸™•…ÑÕÉ•Ìè(€€€€€€€€€€€€€€€€€€€Ù…±Õ•Ì€ôÁ¹Ñ½}¹Õµ•É¥Œ¡™É…µ•m™•…ÑÕÉ•t°•ÉÉ½ÉÌô‰½•É”ˆ¤¹Ñ½}¹ÕµÁä¡‘ÑåÁ”õ¹À¹™±½…ÐØÐ°½ÁäõQÉÕ”¤(€€€€€€€€€€€€€€€€€€€Ù…±Õ•Ímù¹À¹¥Í™¥¹¥Ñ”¡Ù…±Õ•Ì¥t€ô¹À¹¹…¸(€€€€€€€€€€€€€€€€€€€¹Õµ•É¥m™•…ÑÕÉ•t€ôÙ…±Õ•Ì¹…ÍÑåÁ”¡½¹™¥l‰ÁÉ•ÁÉ½•ÍÍ¥¹œ‰ul‰¹Õµ•É¥}½ÕÑÁÕÑ}‘ÑåÁ”‰t¤(€€€€€€€€€€€€€€€¹Õµ•É¥m9IQ}M5A1}%1}=1U59t€ô¹À¹™Õ±°¡±•¸¡™É…µ”¤°™¥±•}¥°‘ÑåÁ”õ¹À¹Õ¥¹ÐØÐ¤(€€€€€€€€€€€€€€€¹Õµ•É¥m9IQ}M5A1}I=]}=1U59t€ôÉ½Ý}¥‘Ì(€€€€€€€€€€€€€€€¹Õµ•É¥l‰}±…‰•±}¹…µ”‰t€ô±…‰•±Ì¹Ñ½}¹ÕµÁä ¤(€€€€€€€€€€€€€€€™½È½‘”°ÍÁ±¥Ð¥¸•¹Õµ•É…Ñ”¡MA1%Q}95L¤è(€€€€€€€€€€€€€€€€€€€Á½Í¥Ñ¥½¹Ì€ô¹À¹™±…Ñ¹½¹é•É¼¡½‘•Ì€ôô½‘”¤(€€€€€€€€€€€€€€€€€€€¥˜¹½Ð±•¸¡Á½Í¥Ñ¥½¹Ì¤è(€€€€€€€€€€€€€€€€€€€€€€€½¹Ñ¥¹Õ”(€€€€€€€€€€€€€€€€€€€…Õ‘¥Ñ½È¹…‘‘}Í…µÁ±•Ì¡™¥±•}¥°É½Ý}¥‘ÍmÁ½Í¥Ñ¥½¹Ít°½‘”¤(€€€€€€€€€€€€€€€€€€€¥˜É½ÕÁ}…Ý…É”è(€€€€€€€€€€€€€€€€€€€€€€€…Õ‘¥Ñ½È¹…‘‘}É½ÕÁÌ¡¡…Í¡•ÍmÁ½Í¥Ñ¥½¹Ít°½‘”¤(€€€€€€€€€€€€€€€€€€€Í•±•Ñ•‘}±…‰•±Ì€ô±…‰•±Ì¹¥±½mÁ½Í¥Ñ¥½¹Ít¹…ÍÑåÁ”¡ÍÑÈ¤(€€€€€€€€€€€€€€€€€€€ÍÁ±¥Ñ}½Õ¹ÑÍmÍÁ±¥Ñt¹ÕÁ‘…Ñ”¡Í•±•Ñ•‘}±…‰•±Ì¹Ñ½±¥ÍÐ ¤¤(€€€€€€€€€€€€€€€€€€€ÝÉ¥Ñ•È¹…ÁÁ•¹¡ÍÁ±¥Ð°¹Õµ•É¥Œ¹¥±½mÁ½Í¥Ñ¥½¹Ít¹É•Í•Ñ}¥¹‘•à¡‘É½ÀõQÉÕ”¤¤(€€€€€€€€€€€€€€€É½ÝÍ}ÁÉ½•ÍÍ•€¬ô±•¸¡™É…µ”¤(€€€€€€€€€€€€€€€‘•°™É…µ”°±…‰•±Ì°É½Ý}¥‘Ì°¡…Í¡•Ì°½‘•Ì°¹Õµ•É¥Œ(€€€€€€€€€€€€€€€Œ¹½±±•Ð ¤(€€€€€€€€€€€Í½ÕÉ•}¥¹Ù•¹Ñ½Éä¹…ÁÁ•¹¡ì(€€€€€€€€€€€€€€€€‰Á…Ñ ˆèÉ•±…Ñ¥Ù”°(€€€€€€€€€€€€€€€€‰Í½ÕÉ•}™¥±•}¥‘}¡•àˆè˜‰í™¥±•}¥èÀÄÙáôˆ°(€€€€€€€€€€€€€€€€‰Á¡åÍ¥…±}É½ÝÌˆèÁ¡åÍ¥…±}É½ÝÌ°(€€€€€€€€€€€€€€€€‰É½ÝÍ}ÁÉ½•ÍÍ•ˆèÉ½ÝÍ}ÁÉ½•ÍÍ•°(€€€€€€€€€€€ô¤(€€€€€€€€€€€ÝÉ¥Ñ•È¹™±ÕÍ¡}…±° ¤(€€€€€€€€€€€½µÁ±•Ñ•‘}™¥±•Ì¹…‘¡É•±…Ñ¥Ù”¤(€€€€€€€€€€€ÁÉ½É•ÍÍ}Á…å±½…€ôì(€€€€€€€€€€€€€€€€‰™½Éµ…Ñ}Ù•ÉÍ¥½¸ˆè€Ä°(€€€€€€€€€€€€€€€€‰ÍÑ…ÑÕÌˆè€‰ÁÉ•Á…É¥¹œˆ°(€€€€€€€€€€€€€€€€‰™¥¹•ÉÁÉ¥¹Ðˆè™¥¹•ÉÁÉ¥¹Ð°(€€€€€€€€€€€€€€€€‰½µÁ±•Ñ•‘}™¥±•ÌˆèÍ½ÉÑ•¡½µÁ±•Ñ•‘}™¥±•Ì¤°(€€€€€€€€€€€€€€€€‰±…‰•±Í}Í••¸ˆèÍ½ÉÑ•¡±…‰•±Í}Í••¸¤°(€€€€€€€€€€€€€€€€‰ÍÁ±¥Ñ}½Õ¹ÑÌˆèì(€€€€€€€€€€€€€€€€€€€ÍÁ±¥Ðè‘¥Ð¡Í½ÉÑ•¡ÍÁ±¥Ñ}½Õ¹ÑÍmÍÁ±¥Ñt¹¥Ñ•µÌ ¤¤¤™½ÈÍÁ±¥Ð¥¸MA1%Q}95L(€€€€€€€€€€€€€€€ô°(€€€€€€€€€€€€€€€€‰Í½ÕÉ•}¥¹Ù•¹Ñ½ÉäˆèÍ½ÕÉ•}¥¹Ù•¹Ñ½Éä°(€€€€€€€€€€€€€€€€‰Á…ÉÑÌˆèíÍÁ±¥ÐèÝÉ¥Ñ•È¹Á…ÉÑÍmÍÁ±¥Ñt™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô°(€€€€€€€€€€€€€€€€‰ÕÁ‘…Ñ•‘}…Ðˆè‘…Ñ•Ñ¥µ”¹¹½Ü¡Ñ¥µ•é½¹”¹ÕÑŒ¤¹¥Í½™½Éµ…Ð ¤°(€€€€€€€€€€€ô(€€€€€€€€€€€¥˜ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¥Ì¹½Ð9½¹”è(€€€€€€€€€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹Í…Ù•}ÁÉ½É•ÍÌ¡ÁÉ½É•ÍÍ}Á…å±½…¤(€€€€€€€€€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹Í•Ñ}…Ñ¥Ù” ‰ÁÉ•Á…É¥¹œˆ°±•¸¡½µÁ±•Ñ•‘}™¥±•Ì¤°±•¸¡™¥±•Ì¤¤(€€€€€€€€€€€ÁÉ¥¹Ð¡˜‰AÉ•Á…É•…¹‘ÕÉ…‰±ä¡•­Á½¥¹Ñ•Í½ÕÉ”í±•¸¡½µÁ±•Ñ•‘}™¥±•Ì¥ô½í±•¸¡™¥±•Ì¥ôèíÉ•±…Ñ¥Ù•ôˆ¤(€€€€€€€€€€€¥˜‘•…‘±¥¹•}µ½¹½Ñ½¹¥Œ¥Ì¹½Ð9½¹”…¹Ñ¥µ”¹µ½¹½Ñ½¹¥Œ ¤€øô‘•…‘±¥¹•}µ½¹½Ñ½¹¥Œè(€€€€€€€€€€€€€€€É…¥Í”AÉ•ÁÉ½•ÍÍ¥¹A…ÕÍ•I•ÅÕ•ÍÑ• (€€€€€€€€€€€€€€€€€€€˜‰AÉ•ÁÉ½•ÍÍ¥¹œÁ…ÕÍ•Í…™•±ä…™Ñ•Èí±•¸¡½µÁ±•Ñ•‘}™¥±•Ì¥ô½í±•¸¡™¥±•Ì¥ôÍ½ÕÉ”™¥±•Ìˆ(€€€€€€€€€€€€€€€€¤(€€€€€€€ÝÉ¥Ñ•È¹±½Í” ¤(€€€€€€€±•…­…”€ô…Õ‘¥Ñ½È¹É•ÍÕ±Ð¡É½ÕÁ}…Ý…É”¤(€€€™¥¹…±±äè(€€€€€€€…Õ‘¥Ñ½È¹±½Í” ¤((€€€±…‰•±}µ…ÁÁ¥¹œ€ôí±…‰•°è¥¹‘•à™½È¥¹‘•à°±…‰•°¥¸•¹Õµ•É…Ñ”¡Í½ÉÑ•¡±…‰•±Í}Í••¸¤¥ô(€€€…Ñ½µ¥}©Í½¹}‘ÕµÀ¡±…‰•±}µ…ÁÁ¥¹œ°‘•ÍÑ¥¹…Ñ¥½¸€¼€‰±…‰•±}µ…ÁÁ¥¹œ¹©Í½¸ˆ¤(€€€™½ÈÍÁ±¥Ð¥¸MA1%Q}95Lè(€€€€€€€™½ÈÁ…ÉÐ¥¸ÝÉ¥Ñ•È¹Á…ÉÑÍmÍÁ±¥Ñtè(€€€€€€€€€€€Á…Ñ €ô‘•ÍÑ¥¹…Ñ¥½¸€¼Á…ÉÑl‰Á…Ñ ‰t(€€€€€€€€€€€™É…µ”€ôÁ¹É•…‘}Á…ÉÅÕ•Ð¡Á…Ñ ¤(€€€€€€€€€€€™É…µ•m9=}1	1}=1U59t€ô™É…µ”¹Á½À ‰}±…‰•±}¹…µ”ˆ¤¹µ…À¡±…‰•±}µ…ÁÁ¥¹œ¤¹…ÍÑåÁ”¡¹À¹¥¹ÐÌÈ¤(€€€€€€€€€€€Ñ•µÁ½É…Éä€ôÁ…Ñ ¹Ý¥Ñ¡}ÍÕ™™¥à¡Á…Ñ ¹ÍÕ™™¥à€¬€ˆ¹ÑµÀˆ¤(€€€€€€€€€€€™É…µ”¹Ñ½}Á…ÉÅÕ•Ð¡Ñ•µÁ½É…Éä°¥¹‘•àõ…±Í”°½µÁÉ•ÍÍ¥½¸õ½¹™¥l‰½ÕÑÁÕÐ‰ul‰½µÁÉ•ÍÍ¥½¸‰t¤(€€€€€€€€€€€½Ì¹É•Á±…”¡Ñ•µÁ½É…Éä°Á…Ñ ¤(€€€€€€€€€€€Á…ÉÑl‰‰åÑ•Ì‰t€ôÁ…Ñ ¹ÍÑ…Ð ¤¹ÍÑ}Í¥é”(€€€€€€€€€€€¥˜ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¥Ì¹½Ð9½¹”è(€€€€€€€€€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹ÕÁ±½…‘}Á…ÉÐ¡Á…Ñ °ÍÑÈ¡Á…ÉÑl‰Á…Ñ ‰t¤¤(€€€€€€€€€€€‘•°™É…µ”((€€€ÍÁ±¥Ñ}Í¥é•Ì€ôíÍÁ±¥Ðè¥¹Ð¡ÍÕ´¡ÍÁ±¥Ñ}½Õ¹ÑÍmÍÁ±¥Ñt¹Ù…±Õ•Ì ¤¤¤™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô(€€€…ÍÍ•ÉÐÍÕ´¡ÍÁ±¥Ñ}Í¥é•Ì¹Ù…±Õ•Ì ¤¤€ôôÍÕ´¡¥Ñ•µl‰É½ÝÍ}ÁÉ½•ÍÍ•‰t™½È¥Ñ•´¥¸Í½ÕÉ•}¥¹Ù•¹Ñ½Éä¤(€€€…ÍÍ•ÉÐ…±°¡Í¥é”€ø€À™½ÈÍ¥é”¥¸ÍÁ±¥Ñ}Í¥é•Ì¹Ù…±Õ•Ì ¤¤°˜‰µÁÑäÍÁ±¥Ð‘•Ñ•Ñ•èíÍÁ±¥Ñ}Í¥é•Íôˆ(€€€µ¥ÍÍ¥¹œ€ôíÍÁ±¥ÐèÍ½ÉÑ•¡±…‰•±Í}Í••¸¹‘¥™™•É•¹”¡ÍÁ±¥Ñ}½Õ¹ÑÍmÍÁ±¥Ñt¤¤™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô(€€€¥˜ÍÁ±¥Ñ}™œ¹•Ð ‰É•ÅÕ¥É•}…±±}±…ÍÍ•Í}•…¡}ÍÁ±¥Ðˆ°QÉÕ”¤è(€€€€€€€…ÍÍ•ÉÐ¹½Ð…¹ä¡µ¥ÍÍ¥¹œ¹Ù…±Õ•Ì ¤¤°˜‰±…ÍÍ•Ìµ¥ÍÍ¥¹œ™É½´½¹”½Èµ½É”ÍÁ±¥ÑÌèíµ¥ÍÍ¥¹ôˆ((€€€ÁÉ•ÁÉ½•ÍÍ¥¹œ€ôì(€€€€€€€€‰ÁÉ•ÁÉ½•ÍÍ¥¹}Ù•ÉÍ¥½¸ˆè€Ä°(€€€€€€€€‰™¥Ñ}ÍÁ±¥Ðˆè€‰ÑÉ…¥¸ˆ°(€€€€€€€€‰Ñ…É•Ñ}½±Õµ¸ˆèÑ…É•Ð°(€€€€€€€€‰±…‰•±}Í½ÕÉ”ˆè€‰½±Õµ¸ˆ¥˜Ñ…É•Ð•±Í”€‰Á…ÉÅÕ•Ñ}™¥±•¹…µ”ˆ°(€€€€€€€€‰™•…ÑÕÉ•}½±Õµ¹Í}¥¹}½É‘•Èˆè™•…ÑÕÉ•Ì°(€€€€€€€€‰™•…ÑÕÉ•}‘ÑåÁ•Ìˆèí™•…ÑÕÉ”è½¹™¥l‰ÁÉ•ÁÉ½•ÍÍ¥¹œ‰ul‰¹Õµ•É¥}½ÕÑÁÕÑ}‘ÑåÁ”‰t™½È™•…ÑÕÉ”¥¸™•…ÑÕÉ•Íô°(€€€€€€€€‰…Ñ•½É¥…±}™•…ÑÕÉ•Ìˆèmt°(€€€€€€€€‰‘É½ÁÁ•‘}½±Õµ¹Ìˆèmì‰½±Õµ¸ˆè½±Õµ¸°€‰É•…Í½¸ˆèÉ•…Í½¹ô™½È½±Õµ¸°É•…Í½¸¥¸Í½ÉÑ•¡‘É½Á}É•…Í½¹Ì¹¥Ñ•µÌ ¤¥t°(€€€€€€€€‰¹…¹}¥¹™}¡…¹‘±¥¹œˆè½¹™¥l‰ÁÉ•ÁÉ½•ÍÍ¥¹œ‰ul‰¹…¹}¥¹™}Á½±¥ä‰t°(€€€€€€€€‰Í…±¥¹œˆè€‰¹½¹”ˆ°(€€€€€€€€‰™•…ÑÕÉ•}Í•±•Ñ¥½¸ˆè€‰¹½¹”ˆ°(€€€€€€€€‰¥µ‰…±…¹•}¡…¹‘±¥¹œˆè€‰¹½¹”ˆ°(€€€€€€€€‰±…‰•±}µ…ÁÁ¥¹}™¥±”ˆè€‰±…‰•±}µ…ÁÁ¥¹œ¹©Í½¸ˆ°(€€€ô(€€€…Ñ½µ¥}©Í½¹}‘ÕµÀ¡ÁÉ•ÁÉ½•ÍÍ¥¹œ°‘•ÍÑ¥¹…Ñ¥½¸€¼€‰ÁÉ•ÁÉ½•ÍÍ¥¹œ¹©Í½¸ˆ¤(€€€µ…¹¥™•ÍÐ€ôì(€€€€€€€€‰µ…¹¥™•ÍÑ}Ù•ÉÍ¥½¸ˆè€Ä°(€€€€€€€€‰‘…Ñ…Í•Ñ}É½½ÐˆèÍÑÈ¡É½½Ð¤°(€€€€€€€€‰™¥±•}Á…ÑÑ•É¸ˆè‘…Ñ…Í•Ñ}™l‰™¥±•}Á…ÑÑ•É¸‰t°(€€€€€€€€‰Í…µÁ±¥¹}µ½‘”ˆè€‰™Õ±°ˆ¥˜Í…µÁ±•Í}Á•É}™¥±”¥Ì9½¹”•±Í”€‰Íµ½­•}ÁÉ•™¥á}Á•É}™¥±”ˆ°(€€€€€€€€‰Í…µÁ±•Í}Á•É}™¥±”ˆèÍ…µÁ±•Í}Á•É}™¥±”°(€€€€€€€€‰Í½ÕÉ•}™¥±•ÌˆèÍ½ÕÉ•}¥¹Ù•¹Ñ½Éä°(€€€€€€€€‰Í…µÁ±•}¥‘}‘•™¥¹¥Ñ¥½¸ˆèì(€€€€€€€€€€€€‰™¥•±‘Ìˆèm9IQ}M5A1}%1}=1U58°9IQ}M5A1}I=]}=1U59t°(€€€€€€€€€€€€‰™¥±•}¥ˆè€‰	1-Éˆ´ØÐ½˜¹½Éµ…±¥é•‘…Ñ…Í•ÐµÉ•±…Ñ¥Ù”Á…Ñ ˆ°(€€€€€€€€€€€€‰É½Ý}¥ˆè€‰é•É¼µ‰…Í•Á¡åÍ¥…°É½Ü¹Õµ‰•È¥¸Ñ¡”Í½ÕÉ”A…ÉÅÕ•Ð™¥±”ˆ°(€€€€€€€ô°(€€€€€€€€‰ÍÁ±¥Ðˆèì(€€€€€€€€€€€€‰µ•Ñ¡½ˆè€‰‘•Ñ•Éµ¥¹¥ÍÑ¥ŒÉ½ÕÀ¡…Í ˆ¥˜É½ÕÁ}…Ý…É”•±Í”€‰‘•Ñ•Éµ¥¹¥ÍÑ¥ŒÍ…µÁ±”µ%¡…Í ÍÑÉ…Ñ¥™¥•‰ä±…‰•°Í½ÕÉ”ˆ°(€€€€€€€€€€€€‰É½ÕÁ}…Ý…É”ˆèÉ½ÕÁ}…Ý…É”°(€€€€€€€€€€€€‰É½ÕÁ}½±Õµ¹ÌˆèÉ½ÕÁ}½±Õµ¹Ì°(€€€€€€€€€€€€‰Í••ˆè¥¹Ð¡ÍÁ±¥Ñ}™l‰Í••‰t¤°(€€€€€€€€€€€€‰É…Ñ¥½Ìˆèí¹…µ”è™±½…Ð¡ÍÁ±¥Ñ}™m¹…µ•t¤™½È¹…µ”¥¸MA1%Q}95Mô°(€€€€€€€€€€€€‰Í¥é•ÌˆèÍÁ±¥Ñ}Í¥é•Ì°(€€€€€€€€€€€€‰±…ÍÍ}½Õ¹ÑÌˆèíÍÁ±¥Ðè‘¥Ð¡Í½ÉÑ•¡ÍÁ±¥Ñ}½Õ¹ÑÍmÍÁ±¥Ñt¹¥Ñ•µÌ ¤¤¤™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô°(€€€€€€€€€€€€‰±…ÍÍ•Í}µ¥ÍÍ¥¹}™É½µ}ÍÁ±¥Ðˆèµ¥ÍÍ¥¹œ°(€€€€€€€€€€€€‰Á•É™½Éµ•‘}‰•™½É•}™•…ÑÕÉ•}½¹Ù•ÉÍ¥½¸ˆèQÉÕ”°(€€€€€€€€€€€€‰Á•É™½Éµ•‘}‰•™½É•}±¥¡Ñ‰µ}‘…Ñ…Í•Ñ}É•…Ñ¥½¸ˆèQÉÕ”°(€€€€€€€€€€€€‰¹…ÑÕÉ…±}±…ÍÍ}‘¥ÍÑÉ¥‰ÕÑ¥½¹}ÁÉ•Í•ÉÙ•ˆèQÉÕ”°(€€€€€€€ô°(€€€€€€€€‰±•…­…•}…Õ‘¥Ðˆè±•…­…”°(€€€€€€€€‰Á…ÉÑÌˆèíÍÁ±¥ÐèÝÉ¥Ñ•È¹Á…ÉÑÍmÍÁ±¥Ñt™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô°(€€€ô(€€€…Ñ½µ¥}©Í½¹}‘ÕµÀ¡µ…¹¥™•ÍÐ°‘•ÍÑ¥¹…Ñ¥½¸€¼€‰Í…µÁ±•}µ…¹¥™•ÍÐ¹©Í½¸ˆ¤(€€€¥˜ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¥Ì¹½Ð9½¹”è(€€€€€€€™½ÈÁ…Ñ ¥¸€ (€€€€€€€€€€€‘•ÍÑ¥¹…Ñ¥½¸€¼€‰‘…Ñ…}ÁÉ½™¥±”¹©Í½¸ˆ°(€€€€€€€€€€€‘•ÍÑ¥¹…Ñ¥½¸€¼€‰±…‰•±}µ…ÁÁ¥¹œ¹©Í½¸ˆ°(€€€€€€€€€€€‘•ÍÑ¥¹…Ñ¥½¸€¼€‰ÁÉ•ÁÉ½•ÍÍ¥¹œ¹©Í½¸ˆ°(€€€€€€€€€€€‘•ÍÑ¥¹…Ñ¥½¸€¼€‰Í…µÁ±•}µ…¹¥™•ÍÐ¹©Í½¸ˆ°(€€€€€€€€¤è(€€€€€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹ÕÁ±½…‘}…ÉÑ¥™…Ð¡Á…Ñ ¤(€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹Í…Ù•}ÁÉ½É•ÍÌ¡ì(€€€€€€€€€€€€‰™½Éµ…Ñ}Ù•ÉÍ¥½¸ˆè€Ä°(€€€€€€€€€€€€‰ÍÑ…ÑÕÌˆè€‰½µÁ±•Ñ”ˆ°(€€€€€€€€€€€€‰™¥¹•ÉÁÉ¥¹Ðˆè™¥¹•ÉÁÉ¥¹Ð°(€€€€€€€€€€€€‰½µÁ±•Ñ•‘}™¥±•ÌˆèÍ½ÉÑ•¡½µÁ±•Ñ•‘}™¥±•Ì¤°(€€€€€€€€€€€€‰±…‰•±Í}Í••¸ˆèÍ½ÉÑ•¡±…‰•±Í}Í••¸¤°(€€€€€€€€€€€€‰ÍÁ±¥Ñ}½Õ¹ÑÌˆèíÍÁ±¥Ðè‘¥Ð¡Í½ÉÑ•¡ÍÁ±¥Ñ}½Õ¹ÑÍmÍÁ±¥Ñt¹¥Ñ•µÌ ¤¤¤™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô°(€€€€€€€€€€€€‰Í½ÕÉ•}¥¹Ù•¹Ñ½ÉäˆèÍ½ÕÉ•}¥¹Ù•¹Ñ½Éä°(€€€€€€€€€€€€‰Á…ÉÑÌˆèíÍÁ±¥ÐèÝÉ¥Ñ•È¹Á…ÉÑÍmÍÁ±¥Ñt™½ÈÍÁ±¥Ð¥¸MA1%Q}95Mô°(€€€€€€€€€€€€‰ÕÁ‘…Ñ•‘}…Ðˆè‘…Ñ•Ñ¥µ”¹¹½Ü¡Ñ¥µ•é½¹”¹ÕÑŒ¤¹¥Í½™½Éµ…Ð ¤°(€€€€€€€ô¤(€€€€€€€ÁÉ•ÁÉ½•ÍÍ¥¹}ÍÑ½É”¹Í•Ñ}…Ñ¥Ù” ‰ÁÉ•Á…É¥¹œˆ°±•¸¡½µÁ±•Ñ•‘}™¥±•Ì¤°±•¸¡™¥±•Ì¤¤(€€€€€€€¥˜‘•…‘±¥¹•}µ½¹½Ñ½¹¥Œ¥Ì¹½Ð9½¹”…¹Ñ¥µ”¹µ½¹½Ñ½¹¥Œ ¤€øô‘•…‘±¥¹•}µ½¹½Ñ½¹¥Œè(€€€€€€€€€€€É…¥Í”AÉ•ÁÉ½•ÍÍ¥¹A…ÕÍ•I•ÅÕ•ÍÑ• (€€€€€€€€€€€€€€€€‰AÉ•ÁÉ½•ÍÍ¥¹œ½µÁ±•Ñ•‘ÕÉ…‰±äìÑÉ…¥¹¥¹œ¥Ì‘•™•ÉÉ•Ñ¼„™É•Í -…±”Í•ÍÍ¥½¸ˆ(€€€€€€€€€€€€¤(€€€É•ÑÕÉ¸µ…¹¥™•ÍÐ(()‘•˜Á…ÉÍ•}…ÉÌ ¤€´ø…ÉÁ…ÉÍ”¹9…µ•ÍÁ…”è(€€€Á…ÉÍ•È€ô…ÉÁ…ÉÍ”¹ÉÕµ•¹ÑA…ÉÍ•È¡‘•ÍÉ¥ÁÑ¥½¸õ}}‘½}|¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µ½¹™¥œˆ°‘•™…Õ±Ðô‰½¹™¥œ½‘…Ñ„¹©Í½¸ˆ¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µ‘…Ñ„µ‘¥Èˆ°‘•™…Õ±Ðõ9½¹”¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µ½ÕÑÁÕÐµ‘¥Èˆ°‘•™…Õ±Ðô‰½ÕÑÁÕÑÌ½‘…Ñ„ˆ¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µÍ…µÁ±•ÌµÁ•Èµ™¥±”ˆ°ÑåÁ”õ¥¹Ð°‘•™…Õ±Ðõ9½¹”¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µÌÌµ½¹™¥œˆ°‘•™…Õ±Ðõ9½¹”¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µÉÕ¸µ¥ˆ°‘•™…Õ±Ðõ9½¹”¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µµ…á¥µÕ´µ¡½ÕÉÌˆ°ÑåÁ”õ™±½…Ð°‘•™…Õ±ÐôÀ¸À¤(€€€Á…ÉÍ•È¹…‘‘}…ÉÕµ•¹Ð ˆ´µÍÑ½Àµ‰•™½É”µµ¥¹ÕÑ•Ìˆ°ÑåÁ”õ™±½…Ð°‘•™…Õ±ÐôÌÀ¸À¤(€€€É•ÑÕÉ¸Á…ÉÍ•È¹Á…ÉÍ•}…ÉÌ ¤(()‘•˜µ…¥¸ ¤€´ø¥¹Ðè(€€€…ÉÌ€ôÁ…ÉÍ•}…ÉÌ ¤(€€€½¹™¥œ€ô±½…‘}½¹™¥œ¡…ÉÌ¹½¹™¥œ¤(€€€¥˜…ÉÌ¹‘…Ñ…}‘¥È¥Ì¹½Ð9½¹”è(€€€€€€€½¹™¥l‰‘…Ñ…Í•Ð‰ul‰‘…Ñ…}‘¥È‰t€ô…ÉÌ¹‘…Ñ…}‘¥È(€€€¥˜…ÉÌ¹Í…µÁ±•Í}Á•É}™¥±”¥Ì¹½Ð9½¹”è(€€€€€€€¥˜…ÉÌ¹Í…µÁ±•Í}Á•É}™¥±”€ðô€Àè(€€€€€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ˆ´µÍ…µÁ±•ÌµÁ•Èµ™¥±”µÕÍÐ‰”Á½Í¥Ñ¥Ù”ˆ¤(€€€€€€€½¹™¥l‰‘…Ñ…Í•Ð‰ul‰Í…µÁ±•Í}Á•É}™¥±”‰t€ô…ÉÌ¹Í…µÁ±•Í}Á•É}™¥±”(€€€ÍÑ½É”€ô9½¹”(€€€¥˜…ÉÌ¹ÌÍ}½¹™¥œ½È…ÉÌ¹ÉÕ¹}¥è(€€€€€€€¥˜¹½Ð…ÉÌ¹ÌÍ}½¹™¥œ½È¹½Ð…ÉÌ¹ÉÕ¹}¥è(€€€€€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ˆ´µÌÌµ½¹™¥œ…¹€´µÉÕ¸µ¥µÕÍÐ‰”ÍÕÁÁ±¥•Ñ½•Ñ¡•Èˆ¤(€€€€€€€ÌÍ}‘½Õµ•¹Ð€ô©Í½¸¹±½…‘Ì¡A…Ñ ¡…ÉÌ¹ÌÍ}½¹™¥œ¤¹É•…‘}Ñ•áÐ¡•¹½‘¥¹œô‰ÕÑ˜´àˆ¤¤(€€€€€€€ÍÑ½É”€ôAÉ•ÁÉ½•ÍÍ¥¹MÑ½É”¡A…Ñ ¡…ÉÌ¹½ÕÑÁÕÑ}‘¥È¤°…ÉÌ¹ÉÕ¹}¥°ÌÍ}‘½Õµ•¹Ñl‰ÌÌ‰t¤(€€€‘•…‘±¥¹”€ô9½¹”(€€€¥˜…ÉÌ¹µ…á¥µÕµ}¡½ÕÉÌ€ø€Àè(€€€€€€€ÕÍ…‰±”€ô…ÉÌ¹µ…á¥µÕµ}¡½ÕÉÌ€¨€ÌØÀÀ¸À€´…ÉÌ¹ÍÑ½Á}‰•™½É•}µ¥¹ÕÑ•Ì€¨€ØÀ¸À(€€€€€€€¥˜ÕÍ…‰±”€ðô€Àè(€€€€€€€€€€€É…¥Í”Y…±Õ•ÉÉ½È ˆ´µÍÑ½Àµ‰•™½É”µµ¥¹ÕÑ•ÌµÕÍÐ‰”±•ÍÌÑ¡…¸€´µµ…á¥µÕ´µ¡½ÕÉÌˆ¤(€€€€€€€•áÑ•É¹…±}‘•…‘±¥¹”€ô½Ì¹•¹Ù¥É½¸¹•Ð ‰A%A1%9}MMM%=9}1%9}A= ˆ¤(€€€€€€€¥˜•áÑ•É¹…±}‘•…‘±¥¹”è(€€€€€€€€€€€ÕÍ…‰±”€ôµ¥¸¡ÕÍ…‰±”°µ…à À¸À°™±½…Ð¡•áÑ•É¹…±}‘•…‘±¥¹”¤€´Ñ¥µ”¹Ñ¥µ” ¤¤¤(€€€€€€€‘•…‘±¥¹”€ôÑ¥µ”¹µ½¹½Ñ½¹¥Œ ¤€¬ÕÍ…‰±”(€€€ÑÉäè(€€€€€€€µ…¹¥™•ÍÐ€ôÁÉ•Á…É•}‘…Ñ…Í•Ð¡½¹™¥œ°…ÉÌ¹½ÕÑÁÕÑ}‘¥È°ÍÑ½É”°‘•…‘±¥¹”¤(€€€•á•ÁÐAÉ•ÁÉ½•ÍÍ¥¹A…ÕÍ•I•ÅÕ•ÍÑ•…Ì•áŒè(€€€€€€€ÁÉ¥¹Ð¡ÍÑÈ¡•áŒ¤¤(€€€€€€€É•ÑÕÉ¸€ÜÔ(€€€ÁÉ¥¹Ð¡©Í½¸¹‘ÕµÁÌ¡ì(€€€€€€€€‰Í…µÁ±•}µ…¹¥™•ÍÐˆèÍÑÈ¡A…Ñ ¡…ÉÌ¹½ÕÑÁÕÑ}‘¥È¤€¼€‰Í…µÁ±•}µ…¹¥™•ÍÐ¹©Í½¸ˆ¤°(€€€€€€€€‰ÍÁ±¥Ñ}Í¥é•Ìˆèµ…¹¥™•ÍÑl‰ÍÁ±¥Ð‰ul‰Í¥é•Ì‰t°(€€€€€€€€‰±•…­…•}…Õ‘¥Ñ}Á…ÍÍ•ˆèµ…¹¥™•ÍÑl‰±•…­…•}…Õ‘¥Ð‰ul‰Á…ÍÍ•‰t°(€€€ô°¥¹‘•¹ÐôÈ¤¤(€€€É•ÑÕÉ¸€À(()¥˜}}¹…µ•}|€ôô€‰}}µ…¥¹}|ˆè(€€€É…¥Í”MåÍÑ•µá¥Ð¡µ…¥¸ ¤¤
+        "estimated_numeric_matrix_bytes": numeric_matrix_bytes,
+        "estimated_prepared_split_bytes": estimated_prepared_bytes,
+        "estimated_lightgbm_training_peak_bytes": estimated_training_peak,
+        "lightgbm_peak_multiplier": peak_multiplier,
+        "ram_total_bytes": int(memory.total),
+        "ram_available_bytes_at_profile": int(memory.available),
+        "allowed_training_bytes": allowed,
+        "safe_to_materialize_for_lightgbm": estimated_training_peak <= allowed,
+        "platform": platform.platform(),
+        "cpu": platform.processor() or platform.machine(),
+        "files": records,
+    }
+
+
+class SplitPartWriter:
+    def __init__(
+        self,
+        root: Path,
+        compression: str,
+        rows_per_part: int,
+        existing_parts: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+        upload_callback: Any | None = None,
+    ) -> None:
+        self.root = root
+        self.compression = compression
+        self.rows_per_part = rows_per_part
+        self.buffers: dict[str, list[pd.DataFrame]] = defaultdict(list)
+        self.buffer_rows = Counter()
+        self.parts: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for split, values in dict(existing_parts or {}).items():
+            self.parts[split] = [dict(value) for value in values]
+        self.part_numbers = Counter({split: len(self.parts[split]) for split in SPLIT_NAMES})
+        self.upload_callback = upload_callback
+
+    def append(self, split: str, frame: pd.DataFrame) -> None:
+        if frame.empty:
+            return
+        self.buffers[split].append(frame)
+        self.buffer_rows[split] += len(frame)
+        if self.buffer_rows[split] >= self.rows_per_part:
+            self.flush(split)
+
+    def flush(self, split: str) -> None:
+        if not self.buffers[split]:
+            return
+        combined = pd.concat(self.buffers[split], ignore_index=True)
+        while len(combined) >= self.rows_per_part:
+            self._write(split, combined.iloc[: self.rows_per_part].copy())
+            combined = combined.iloc[self.rows_per_part :].reset_index(drop=True)
+        self.buffers[split] = [combined] if len(combined) else []
+        self.buffer_rows[split] = len(combined)
+        gc.collect()
+
+    def _write(self, split: str, frame: pd.DataFrame) -> None:
+        number = self.part_numbers[split]
+        self.part_numbers[split] += 1
+        relative = Path("splits") / split / f"part-{number:06d}.parquet"
+        destination = self.root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_suffix(destination.suffix + ".tmp")
+        frame.to_parquet(temporary, index=False, compression=self.compression)
+        metadata = pq.ParquetFile(temporary).metadata
+        if int(metadata.num_rows) != len(frame):
+            raise RuntimeError(f"Parquet verification failed for {temporary}")
+        os.replace(temporary, destination)
+        part = {"path": relative.as_posix(), "rows": len(frame), "bytes": destination.stat().st_size}
+        self.parts[split].append(part)
+        if self.upload_callback is not None:
+            self.upload_callback(destination, relative.as_posix())
+
+    def flush_all(self) -> None:
+        for split in SPLIT_NAMES:
+            if self.buffers[split]:
+                combined = pd.concat(self.buffers[split], ignore_index=True)
+                self._write(split, combined)
+            self.buffers[split] = []
+            self.buffer_rows[split] = 0
+
+    def close(self) -> None:
+        self.flush_all()
+
+
+class PreprocessingStore:
+    """Durable per-source preprocessing state using object-scoped S3 URLs."""
+
+    def __init__(self, destination: Path, run_id: str, s3_config: Mapping[str, Any]) -> None:
+        from checkpoint import S3Store
+
+        self.destination = destination
+        self.run_id = run_id
+        self.s3 = S3Store(s3_config, enabled_override=True)
+
+    def key(self, relative: str) -> str:
+        return self.s3.run_key(self.run_id, f"preprocessing/{relative.lstrip('/')}")
+
+    def restore(self) -> dict[str, Any] | None:
+        progress = self.s3.read_json(self.key("progress.json"))
+        if not progress:
+            return None
+        for split_parts in progress.get("parts", {}).values():
+            for part in split_parts:
+                relative = str(part["path"])
+                self.s3.download_file(self.key(relative), self.destination / relative, required=True)
+        if progress.get("status") == "complete":
+            for name in (
+                "data_profile.json", "label_mapping.json", "preprocessing.json", "sample_manifest.json"
+            ):
+                self.s3.download_file(self.key(name), self.destination / name, required=True)
+        return progress
+
+    def upload_part(self, path: Path, relative: str) -> None:
+        self.s3.upload_atomic(path, self.key(relative))
+
+    def upload_artifact(self, path: Path) -> None:
+        self.s3.upload_atomic(path, self.key(path.name))
+
+    def save_progress(self, payload: Mapping[str, Any]) -> None:
+        path = self.destination / "progress.json"
+        atomic_json_dump(dict(payload), path)
+        self.s3.upload_atomic(path, self.key("progress.json"))
+
+    def set_active(self, status: str, completed_files: int, total_files: int) -> None:
+        pointer = {
+            "run_id": self.run_id,
+            "status": status,
+            "current_iteration": 0,
+            "preprocessing_completed_files": int(completed_files),
+            "preprocessing_total_files": int(total_files),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        path = self.destination / "active_run.json"
+        atomic_json_dump(pointer, path)
+        self.s3.upload_atomic(path, self.s3.project_key("active_run.json"))
+
+
+def _iter_file_chunks(path: Path, selected_rows: int | None) -> Iterable[tuple[pd.DataFrame, int]]:
+    parquet = pq.ParquetFile(path)
+    offset = 0
+    remaining = selected_rows
+    for row_group in range(parquet.num_row_groups):
+        if remaining is not None and remaining <= 0:
+            break
+        frame = parquet.read_row_group(row_group).to_pandas()
+        if remaining is not None and len(frame) > remaining:
+            frame = frame.iloc[:remaining].copy()
+        frame.columns = [str(column).strip() for column in frame.columns]
+        if frame.columns.duplicated().any():
+            frame = frame.loc[:, ~frame.columns.duplicated(keep="first")]
+        yield frame, offset
+        offset += len(frame)
+        if remaining is not None:
+            remaining -= len(frame)
+
+
+def prepare_dataset(
+    config: Mapping[str, Any],
+    output_dir: str | Path,
+    preprocessing_store: PreprocessingStore | None = None,
+    deadline_monotonic: float | None = None,
+) -> dict[str, Any]:
+    destination = Path(output_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+    dataset_cfg = config["dataset"]
+    split_cfg = config["split"]
+    files = discover_parquet_files(dataset_cfg["data_dir"], dataset_cfg["file_pattern"])
+    root = Path(dataset_cfg["data_dir"])
+
+    schemas = [pq.ParquetFile(path).schema_arrow for path in files]
+    column_sets = [set(schema.names) for schema in schemas]
+    common_columns = [name for name in schemas[0].names if all(name in values for values in column_sets)]
+    target = infer_column(common_columns, dataset_cfg.get("target_column"), dataset_cfg["target_column_candidates"])
+    if target is None and not dataset_cfg.get("label_from_filename_if_missing", False):
+        raise ValueError("No target column found and filename-derived labels are disabled")
+    group_columns = select_group_columns(common_columns, dataset_cfg.get("group_column_candidates", []))
+    if split_cfg.get("strategy") == "group_aware" and not group_columns:
+        raise ValueError("group_aware split was required but no configured group columns were found")
+    group_aware = bool(group_columns) and split_cfg.get("strategy") in {"group_aware", "auto_group_aware"}
+    features, drop_reasons, arrow_types = _drop_reasons(
+        common_columns, target, group_columns, schemas[0], config["preprocessing"]
+    )
+    for column in sorted(set.union(*column_sets).difference(common_columns)):
+        drop_reasons[column] = "not present in every source Parquet schema"
+    if not features:
+        raise ValueError("No numeric feature columns remain after exclusions")
+
+    profile = profile_dataset(files, root, len(features), config)
+    profile["source_dtypes"] = arrow_types
+    atomic_json_dump(profile, destination / "data_profile.json")
+
+    fingerprint_payload = {
+        "config": config,
+        "files": [
+            {
+                "path": path.relative_to(root).as_posix(),
+                "rows": int(pq.ParquetFile(path).metadata.num_rows),
+                "bytes": int(path.stat().st_size),
+            }
+            for path in files
+        ],
+        "features": features,
+        "target": target,
+        "group_columns": group_columns,
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    progress = preprocessing_store.restore() if preprocessing_store is not None else None
+    if progress and progress.get("fingerprint") != fingerprint:
+        raise ValueError("Remote preprocessing checkpoint does not match the current dataset/configuration")
+    if progress and progress.get("status") == "complete":
+        return json.loads((destination / "sample_manifest.json").read_text(encoding="utf-8"))
+
+    ratios = [float(split_cfg[name]) for name in SPLIT_NAMES]
+    labels_seen: set[str] = set(progress.get("labels_seen", [])) if progress else set()
+    split_counts = {
+        name: Counter((progress or {}).get("split_counts", {}).get(name, {})) for name in SPLIT_NAMES
+    }
+    source_inventory: list[dict[str, Any]] = list((progress or {}).get("source_inventory", []))
+    completed_files = set((progress or {}).get("completed_files", []))
+    writer = SplitPartWriter(
+        destination,
+        str(config["output"]["compression"]),
+        int(config["output"]["rows_per_part"]),
+        existing_parts=(progress or {}).get("parts", {}),
+        upload_callback=preprocessing_store.upload_part if preprocessing_store is not None else None,
+    )
+    audit_backend = str(config["audit"].get("backend", "sqlite"))
+    if audit_backend == "deterministic_proof":
+        auditor: Any = DeterministicLeakageAuditor()
+    elif progress:
+        raise ValueError("SQLite leakage auditing cannot resume; use audit.backend=deterministic_proof")
+    else:
+        auditor = ExactLeakageAuditor(
+            destination / ".leakage_audit.sqlite", int(config["audit"]["sqlite_batch_rows"])
+        )
+    samples_per_file = dataset_cfg.get("samples_per_file")
+    if preprocessing_store is not None:
+        preprocessing_store.set_active("preparing", len(completed_files), len(files))
+    try:
+        for path in files:
+            relative = path.relative_to(root).as_posix()
+            if relative in completed_files:
+                continue
+            file_id = source_file_id(relative)
+            physical_rows = int(pq.ParquetFile(path).metadata.num_rows)
+            selected_rows = min(physical_rows, int(samples_per_file)) if samples_per_file is not None else None
+            rows_processed = 0
+            for frame, offset in _iter_file_chunks(path, selected_rows):
+                row_ids = np.arange(offset, offset + len(frame), dtype=np.uint64)
+                if target is None:
+                    labels = pd.Series([path.stem] * len(frame), dtype="string")
+                else:
+                    labels = frame[target].map(_canonical_label).astype("string")
+                labels_seen.update(labels.unique().tolist())
+                if group_aware:
+                    hashes = group_hashes(frame, group_columns)
+                    codes = split_codes_from_hashes(hashes, ratios, int(split_cfg["seed"]))
+                else:
+                    hashes = np.empty(0, dtype=np.uint64)
+                    codes = assign_row_split_codes(file_id, row_ids, ratios, int(split_cfg["seed"]))
+                numeric = pd.DataFrame(index=frame.index)
+                for feature in features:
+                    values = pd.to_numeric(frame[feature], errors="coerce").to_numpy(dtype=np.float64, copy=True)
+                    values[~np.isfinite(values)] = np.nan
+                    numeric[feature] = values.astype(config["preprocessing"]["numeric_output_dtype"])
+                numeric[GENERATED_SAMPLE_FILE_COLUMN] = np.full(len(frame), file_id, dtype=np.uint64)
+                numeric[GENERATED_SAMPLE_ROW_COLUMN] = row_ids
+                numeric["_label_name"] = labels.to_numpy()
+                for code, split in enumerate(SPLIT_NAMES):
+                    positions = np.flatnonzero(codes == code)
+                    if not len(positions):
+                        continue
+                    auditor.add_samples(file_id, row_ids[positions], code)
+                    if group_aware:
+                        auditor.add_groups(hashes[positions], code)
+                    selected_labels = labels.iloc[positions].astype(str)
+                    split_counts[split].update(selected_labels.tolist())
+                    writer.append(split, numeric.iloc[positions].reset_index(drop=True))
+                rows_processed += len(frame)
+                del frame, labels, row_ids, hashes, codes, numeric
+                gc.collect()
+            source_inventory.append({
+                "path": relative,
+                "source_file_id_hex": f"{file_id:016x}",
+                "physical_rows": physical_rows,
+                "rows_processed": rows_processed,
+            })
+            writer.flush_all()
+            completed_files.add(relative)
+            progress_payload = {
+                "format_version": 1,
+                "status": "preparing",
+                "fingerprint": fingerprint,
+                "completed_files": sorted(completed_files),
+                "labels_seen": sorted(labels_seen),
+                "split_counts": {
+                    split: dict(sorted(split_counts[split].items())) for split in SPLIT_NAMES
+                },
+                "source_inventory": source_inventory,
+                "parts": {split: writer.parts[split] for split in SPLIT_NAMES},
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            if preprocessing_store is not None:
+                preprocessing_store.save_progress(progress_payload)
+                preprocessing_store.set_active("preparing", len(completed_files), len(files))
+            print(f"Prepared and durably checkpointed source {len(completed_files)}/{len(files)}: {relative}")
+            if deadline_monotonic is not None and time.monotonic() >= deadline_monotonic:
+                raise PreprocessingPauseRequested(
+                    f"Preprocessing paused safely after {len(completed_files)}/{len(files)} source files"
+                )
+        writer.close()
+        leakage = auditor.result(group_aware)
+    finally:
+        auditor.close()
+
+    label_mapping = {label: index for index, label in enumerate(sorted(labels_seen))}
+    atomic_json_dump(label_mapping, destination / "label_mapping.json")
+    for split in SPLIT_NAMES:
+        for part in writer.parts[split]:
+            path = destination / part["path"]
+            frame = pd.read_parquet(path)
+            frame[ENCODED_LABEL_COLUMN] = frame.pop("_label_name").map(label_mapping).astype(np.int32)
+            temporary = path.with_suffix(path.suffix + ".tmp")
+            frame.to_parquet(temporary, index=False, compression=config["output"]["compression"])
+            os.replace(temporary, path)
+            part["bytes"] = path.stat().st_size
+            if preprocessing_store is not None:
+                preprocessing_store.upload_part(path, str(part["path"]))
+            del frame
+
+    split_sizes = {split: int(sum(split_counts[split].values())) for split in SPLIT_NAMES}
+    assert sum(split_sizes.values()) == sum(item["rows_processed"] for item in source_inventory)
+    assert all(size > 0 for size in split_sizes.values()), f"Empty split detected: {split_sizes}"
+    missing = {split: sorted(labels_seen.difference(split_counts[split])) for split in SPLIT_NAMES}
+    if split_cfg.get("require_all_classes_each_split", True):
+        assert not any(missing.values()), f"Classes missing from one or more splits: {missing}"
+
+    preprocessing = {
+        "preprocessing_version": 1,
+        "fit_split": "train",
+        "target_column": target,
+        "label_source": "column" if target else "parquet_filename",
+        "feature_columns_in_order": features,
+        "feature_dtypes": {feature: config["preprocessing"]["numeric_output_dtype"] for feature in features},
+        "categorical_features": [],
+        "dropped_columns": [{"column": column, "reason": reason} for column, reason in sorted(drop_reasons.items())],
+        "nan_inf_handling": config["preprocessing"]["nan_inf_policy"],
+        "scaling": "none",
+        "feature_selection": "none",
+        "imbalance_handling": "none",
+        "label_mapping_file": "label_mapping.json",
+    }
+    atomic_json_dump(preprocessing, destination / "preprocessing.json")
+    manifest = {
+        "manifest_version": 1,
+        "dataset_root": str(root),
+        "file_pattern": dataset_cfg["file_pattern"],
+        "sampling_mode": "full" if samples_per_file is None else "smoke_prefix_per_file",
+        "samples_per_file": samples_per_file,
+        "source_files": source_inventory,
+        "sample_id_definition": {
+            "fields": [GENERATED_SAMPLE_FILE_COLUMN, GENERATED_SAMPLE_ROW_COLUMN],
+            "file_id": "BLAKE2b-64 of normalized dataset-relative path",
+            "row_id": "zero-based physical row number in the source Parquet file",
+        },
+        "split": {
+            "method": "deterministic group hash" if group_aware else "deterministic sample-ID hash stratified by label source",
+            "group_aware": group_aware,
+            "group_columns": group_columns,
+            "seed": int(split_cfg["seed"]),
+            "ratios": {name: float(split_cfg[name]) for name in SPLIT_NAMES},
+            "sizes": split_sizes,
+            "class_counts": {split: dict(sorted(split_counts[split].items())) for split in SPLIT_NAMES},
+            "classes_missing_from_split": missing,
+            "performed_before_feature_conversion": True,
+            "performed_before_lightgbm_dataset_creation": True,
+            "natural_class_distribution_preserved": True,
+        },
+        "leakage_audit": leakage,
+        "parts": {split: writer.parts[split] for split in SPLIT_NAMES},
+    }
+    atomic_json_dump(manifest, destination / "sample_manifest.json")
+    if preprocessing_store is not None:
+        for path in (
+            destination / "data_profile.json",
+            destination / "label_mapping.json",
+            destination / "preprocessing.json",
+            destination / "sample_manifest.json",
+        ):
+            preprocessing_store.upload_artifact(path)
+        preprocessing_store.save_progress({
+            "format_version": 1,
+            "status": "complete",
+            "fingerprint": fingerprint,
+            "completed_files": sorted(completed_files),
+            "labels_seen": sorted(labels_seen),
+            "split_counts": {split: dict(sorted(split_counts[split].items())) for split in SPLIT_NAMES},
+            "source_inventory": source_inventory,
+            "parts": {split: writer.parts[split] for split in SPLIT_NAMES},
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        })
+        preprocessing_store.set_active("preparing", len(completed_files), len(files))
+        if deadline_monotonic is not None and time.monotonic() >= deadline_monotonic:
+            raise PreprocessingPauseRequested(
+                "Preprocessing completed durably; training is deferred to a fresh Kaggle session"
+            )
+    return manifest
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", default="config/data.json")
+    parser.add_argument("--data-dir", default=None)
+    parser.add_argument("--output-dir", default="outputs/data")
+    parser.add_argument("--samples-per-file", type=int, default=None)
+    parser.add_argument("--s3-config", default=None)
+    parser.add_argument("--run-id", default=None)
+    parser.add_argument("--maximum-hours", type=float, default=0.0)
+    parser.add_argument("--stop-before-minutes", type=float, default=30.0)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    config = load_config(args.config)
+    if args.data_dir is not None:
+        config["dataset"]["data_dir"] = args.data_dir
+    if args.samples_per_file is not None:
+        if args.samples_per_file <= 0:
+            raise ValueError("--samples-per-file must be positive")
+        config["dataset"]["samples_per_file"] = args.samples_per_file
+    store = None
+    if args.s3_config or args.run_id:
+        if not args.s3_config or not args.run_id:
+            raise ValueError("--s3-config and --run-id must be supplied together")
+        s3_document = json.loads(Path(args.s3_config).read_text(encoding="utf-8"))
+        store = PreprocessingStore(Path(args.output_dir), args.run_id, s3_document["s3"])
+    deadline = None
+    if args.maximum_hours > 0:
+        usable = args.maximum_hours * 3600.0 - args.stop_before_minutes * 60.0
+        if usable <= 0:
+            raise ValueError("--stop-before-minutes must be less than --maximum-hours")
+        external_deadline = os.environ.get("PIPELINE_SESSION_DEADLINE_EPOCH")
+        if external_deadline:
+            usable = min(usable, max(0.0, float(external_deadline) - time.time()))
+        deadline = time.monotonic() + usable
+    try:
+        manifest = prepare_dataset(config, args.output_dir, store, deadline)
+    except PreprocessingPauseRequested as exc:
+        print(str(exc))
+        return 75
+    print(json.dumps({
+        "sample_manifest": str(Path(args.output_dir) / "sample_manifest.json"),
+        "split_sizes": manifest["split"]["sizes"],
+        "leakage_audit_passed": manifest["leakage_audit"]["passed"],
+    }, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
