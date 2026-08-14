@@ -225,7 +225,19 @@ jobs:
       - name: Report watchdog decision
         shell: bash
         run: |
-          echo "Kernel status: ${{ steps.decision.outputs.kernel_status }}"
-          echo "Current iteration: ${{ steps.decision.outputs.current_iteration }}"
-          echo "Push next session: ${{ steps.decision.outputs.should_push }}"
-          echo "Reason: ${{ steps.decision.outputs.reason }}"
+          should_push="${{ steps.decision.outputs.should_push }}"
+          reason="${{ steps.decision.outputs.reason }}"
+          {
+            echo "### Kaggle watchdog decision"
+            echo ""
+            echo "- Kernel status: \`${{ steps.decision.outputs.kernel_status }}\`"
+            echo "- Current iteration: \`${{ steps.decision.outputs.current_iteration }}\`"
+            echo "- Push next session: \`${should_push}\`"
+            echo "- Reason: ${reason}"
+          } | tee -a "${GITHUB_STEP_SUMMARY}"
+          if [[ "${should_push}" == "true" ]]; then
+            echo "::notice title=Kaggle session launched::${reason}"
+          else
+            echo "::warning title=Kaggle session not launched::${reason}"
+          fi
+
