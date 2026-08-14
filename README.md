@@ -82,6 +82,11 @@ vào log, checkpoint hoặc artifact.
    không chạy thêm sau trạng thái `complete`, và tiếp tục các trạng thái `paused`,
    `cancelled` hoặc `ready_for_report`.
 
+`maximum_session_attempts` trong `config/orchestration.json` giới hạn số lần mở session
+liên tiếp không tạo thêm iteration hoặc file preprocessing bền vững. Bộ đếm tự reset khi
+watchdog quan sát thấy tiến triển mới, nên một run dài không bị khóa vĩnh viễn chỉ vì tổng
+số session đã vượt ngưỡng.
+
 Notebook production tự thực hiện:
 
 ```bash
