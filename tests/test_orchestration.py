@@ -63,6 +63,8 @@ class NotebookBundleTest(unittest.TestCase):
         self.assertIn("uses: actions/checkout@v4", workflow)
         self.assertIn('"kaggle>=2.1.2,<3"', workflow)
         self.assertIn("kaggle kernels push", workflow)
+        self.assertIn("GITHUB_STEP_SUMMARY", workflow)
+        self.assertIn("::warning title=Kaggle session not launched", workflow)
         self.assertNotIn("scripts/kaggle_http.py push", workflow)
         self.assertIn("AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}", workflow)
 
@@ -148,6 +150,39 @@ class WatchdogDecisionTest(unittest.TestCase):
         self.assertTrue(decision.should_push)
         self.assertEqual(decision.stagnant_restarts, 0)
 
+    def test_durable_progress_releases_session_attempt_limit(self):
+        limit = self.config["maximum_session_attempts"]
+        for active, state in (
+            (
+                {"status": "paused", "current_iteration": 20},
+                {"last_observed_iteration": 10, "session_attempts": limit},
+            ),
+            (
+                {
+                    "status": "preparing",
+                    "current_iteration": 0,
+                    "preprocessing_completed_files": 4,
+                },
+                {
+                    "last_preprocessing_completed_files": 3,
+                    "session_attempts": limit,
+                },
+            ),
+        ):
+            with self.subTest(active=active):
+                decision = decide_next_session(active, state, "complete", self.config, self.now)
+                self.assertTrue(decision.should_push)
+                self.assertEqual(decision.session_attempts, 0)
+
+    def test_session_attempt_limit_still_blocks_without_progress(self):
+        limit = self.config["maximum_session_attempts"]
+        active = {"status": "paused", "current_iteration": 20}
+        state = {"last_observed_iteration": 20, "session_attempts": limit}
+        decision = decide_next_session(active, state, "complete", self.config, self.now)
+        self.assertFalse(decision.should_push)
+        self.assertEqual(decision.reason, "maximum session attempts reached")
+
 
 if __name__ == "__main__":
     unittest.main()
+
