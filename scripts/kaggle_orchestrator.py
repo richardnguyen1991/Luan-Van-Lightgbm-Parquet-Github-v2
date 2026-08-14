@@ -83,7 +83,13 @@ def decide_next_session(
     stagnant = int(state.get("stagnant_restarts", 0))
     preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
     previous_preprocessing_progress = int(state.get("last_preprocessing_completed_files", 0))
-    if preprocessing_progress > previous_preprocessing_progress:
+    previous_iteration = int(state.get("last_observed_iteration", 0))
+    made_progress = current > previous_iteration or preprocessing_progress > previous_preprocessing_progress
+    if made_progress:
+        # These limits protect against consecutive launches that make no durable
+        # progress. They must not become lifetime counters that permanently lock
+        # a healthy long-running job after enough successful resume sessions.
+        attempts = 0
         stagnant = 0
     if force:
         return Decision(True, "manual force", current, kernel_status, attempts, stagnant)
@@ -181,14 +187,14 @@ def command_record(args: argparse.Namespace) -> None:
     active = store.read_json("active_run.json") or {}
     observed = int(active.get("current_iteration", args.observed_iteration))
     preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
-    prior = int(previous.get("last_observed_iteration", -1))
+    prior = int(previous.get("last_observed_iteration", 0))
     previous_preprocessing_progress = int(previous.get("last_preprocessing_completed_files", 0))
     made_progress = observed > prior or preprocessing_progress > previous_preprocessing_progress
     state = {
         "last_push_at": utc_now(), "last_push_reason": args.reason,
         "last_observed_iteration": observed,
         "last_preprocessing_completed_files": preprocessing_progress,
-        "session_attempts": int(previous.get("session_attempts", 0)) + 1,
+        "session_attempts": 1 if made_progress else int(previous.get("session_attempts", 0)) + 1,
         "stagnant_restarts": 0 if made_progress else int(previous.get("stagnant_restarts", 0)) + 1,
     }
     store.write_json("orchestration_state.json", state)
@@ -219,3 +225,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
