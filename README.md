@@ -218,4 +218,3 @@ Sau production run, kiểm tra:
 Gain và split là importance phụ thuộc cấu trúc model. SHAP biểu diễn đóng góp vào dự đoán,
 không chứng minh quan hệ nhân quả. Các thuộc tính tương quan có thể chia sẻ importance;
 không gộp bốn thước đo thành một điểm duy nhất và không dùng chúng để sửa baseline này.
-
