@@ -51,11 +51,11 @@ class DataPipelineTest(unittest.TestCase):
                 frame = pd.DataFrame({
                     "Flow ID": [f"{label}-{index}" for index in range(rows)],
                     "Timestamp": pd.date_range("2019-01-01", periods=rows, freq="s").astype(str),
-                    "Feature A": rng.normal(size=rows),
+                    " Feature A": rng.normal(size=rows),
                     "Feature B": rng.normal(size=rows),
-                    "Label": label,
+                    " Label": label,
                 })
-                frame.loc[::37, "Feature A"] = np.nan
+                frame.loc[::37, " Feature A"] = np.nan
                 frame.loc[::53, "Feature B"] = np.inf
                 frame.to_parquet(dataset / f"{label}.parquet", index=False, row_group_size=113)
 
@@ -83,6 +83,8 @@ class DataPipelineTest(unittest.TestCase):
             self.assertEqual(preprocessing["scaling"], "none")
             self.assertEqual(preprocessing["imbalance_handling"], "none")
             self.assertEqual(preprocessing["categorical_features"], [])
+            self.assertEqual(preprocessing["target_column"], "Label")
+            self.assertEqual(preprocessing["feature_columns_in_order"], ["Feature A", "Feature B"])
             dropped = {item["column"] for item in preprocessing["dropped_columns"]}
             self.assertIn("Flow ID", dropped)
             self.assertIn("Timestamp", dropped)
