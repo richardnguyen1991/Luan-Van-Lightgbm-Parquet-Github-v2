@@ -241,4 +241,3 @@ jobs:
           else
             echo "::warning title=Kaggle session not launched::${reason}"
           fi
-
