@@ -1,7 +1,9 @@
 # LightGBM baseline for CIC-DDoS2019 Parquet
 
-Pipeline huấn luyện baseline LightGBM đa lớp trên toàn bộ train split của bộ dữ liệu
-`dungnguyen28101991/cicddos2019-parquet-per-classes`. Pipeline chạy trên Kaggle CPU,
+Pipeline huấn luyện baseline LightGBM đa lớp trên mẫu xác định đúng 10.000.000 dòng của bộ dữ liệu
+`dungnguyen28101991/cicddos2019-parquet`. Mẫu được phân bổ theo tỷ lệ số dòng vật lý của từng
+file rồi lấy ngẫu nhiên không hoàn lại với seed 2026, vì vậy không lấy phần đầu file, không tái cân
+bằng lớp và tái lập được. Pipeline chạy trên Kaggle CPU,
 lưu checkpoint S3 mỗi 10 boosting iterations, tự tiếp tục sau khi session Kaggle kết thúc
 và chỉ hoàn tất khi model đạt chính xác iteration 100 cùng bộ báo cáo cuối.
 
@@ -24,7 +26,8 @@ thay đổi biểu diễn bộ nhớ nội bộ; không bỏ hàng, bỏ feature
 - `lightgbm.train` dùng đúng một `lgb.Dataset` cho train và validation; test được đọc lazy khi báo cáo.
 - `objective=multiclass`, `learning_rate=0.001`, `num_boost_round=100` chính xác.
 - Không early stopping, tuning, feature selection, class/sample weight hoặc tái cân bằng.
-- Toàn bộ train split được dùng ở cả 100 vòng; validation chỉ theo dõi, test chỉ đánh giá cuối.
+- Toàn bộ train split của mẫu 10 triệu dòng được dùng ở cả 100 vòng; validation chỉ theo dõi,
+  test chỉ đánh giá cuối.
 - CPU bắt buộc, seed cố định, deterministic và `force_col_wise=true`.
 - Checkpoint mỗi 10 vòng gồm Booster `.txt`, `training_state.json` và history append-only.
 - Model cuối luôn là `final_model_round_100.txt`; importance không thay đổi baseline này.
@@ -42,7 +45,7 @@ viz.py                          toàn bộ hàm vẽ, không gọi plt.show()
 make_report.py                  đánh giá cuối và tái tạo báo cáo từ artifact
 kaggle_notebook.ipynb           notebook production tự chứa
 kaggle_smoke_test.ipynb         notebook smoke tự chứa
-config/data.json                cấu hình chuẩn bị toàn bộ dữ liệu
+config/data.json                cấu hình mẫu tỷ lệ xác định 10 triệu dòng
 config/train.json               cấu hình baseline production
 config/report.json              cấu hình metric/figure/importance
 config/orchestration.json       watchdog GitHub Actions/Kaggle
@@ -90,7 +93,7 @@ vào log, checkpoint hoặc artifact.
 
 1. Xác nhận dataset đã được gắn theo `kernel-metadata.json` và accelerator là CPU.
 2. Mở **Actions -> Run Kaggle LightGBM sessions -> Run workflow**.
-3. Chọn `smoke` để kiểm tra nhanh hoặc `production` để chạy toàn bộ dữ liệu.
+3. Chọn `smoke` để kiểm tra nhanh hoặc `production` để chạy mẫu khoa học 10 triệu dòng.
 4. Chỉ bật `force_push` khi cần bỏ qua quyết định chờ của watchdog.
 5. Workflow chạy định kỳ phút 07 và 37. Nó không mở session trùng khi kernel đang chạy,
    không chạy thêm sau trạng thái `complete`, và tiếp tục các trạng thái `paused`,
@@ -116,12 +119,12 @@ Exit code `0` chỉ được xem là hoàn tất khi model đạt iteration 100 
 Yêu cầu Python 3.10+ và các gói: `lightgbm>=4,<5`, `numpy`, `pandas`, `pyarrow`,
 `scikit-learn`, `matplotlib`, `seaborn`, `psutil`, `boto3` và `requests`.
 
-Chuẩn bị dữ liệu đầy đủ:
+Chuẩn bị mẫu production 10 triệu dòng:
 
 ```bash
 python data.py \
   --config config/data.json \
-  --data-dir /path/to/cicddos2019-parquet-per-classes \
+  --data-dir /path/to/cicddos2019-parquet \
   --output-dir outputs/data
 ```
 
@@ -130,7 +133,7 @@ Chạy sampled/smoke:
 ```bash
 python data.py \
   --config config/data.smoke.json \
-  --data-dir /path/to/cicddos2019-parquet-per-classes \
+  --data-dir /path/to/cicddos2019-parquet \
   --output-dir outputs/data-smoke \
   --samples-per-file 2000
 
@@ -191,7 +194,7 @@ s3://<bucket>/<prefix>/<run_id>/
 
 `sample_manifest.json` là bằng chứng chống rò rỉ: sample ID và group không giao nhau giữa
 train/validation/test. `data_profile.json` ghi số hàng, cột, dtype, RAM ước lượng và điều
-kiện an toàn trước khi nạp toàn bộ dữ liệu.
+kiện an toàn trước khi nạp mẫu đã chọn.
 
 ## Nghiệm thu
 
@@ -215,3 +218,4 @@ Sau production run, kiểm tra:
 Gain và split là importance phụ thuộc cấu trúc model. SHAP biểu diễn đóng góp vào dự đoán,
 không chứng minh quan hệ nhân quả. Các thuộc tính tương quan có thể chia sẻ importance;
 không gộp bốn thước đo thành một điểm duy nhất và không dùng chúng để sửa baseline này.
+
