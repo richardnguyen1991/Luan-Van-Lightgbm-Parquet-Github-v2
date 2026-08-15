@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import math
-import os
 import re
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -201,83 +200,48 @@ def lightgbm_safe_feature_names(feature_names: Sequence[str]) -> list[str]:
     return safe
 
 
-def _feature_cache_path(
-    prepared_dir: Path, part: Mapping[str, Any], feature_names: Sequence[str]
-) -> Path:
-    source = prepared_dir / str(part["path"])
-    stat = source.stat()
-    identity = json.dumps(
-        {
-            "path": str(part["path"]),
-            "rows": int(part["rows"]),
-            "bytes": int(stat.st_size),
-            "mtime_ns": int(stat.st_mtime_ns),
-            "features": list(feature_names),
-            "dtype": "float32",
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    digest = hashlib.sha256(identity).hexdigest()
-    return prepared_dir / ".lightgbm_sequence_cache" / f"{digest}.npy"
+class ParquetRowGroupCache:
+    """Small shared LRU for decoded Parquet row groups.
 
+    Prepared Parquet remains the only on-disk feature representation.  The cache
+    bounds decoded feature memory across *all* LightGBM Sequences, instead of
+    retaining one full part per Sequence or expanding every part into an
+    uncompressed NumPy file.
+    """
 
-def _ensure_feature_cache(
-    prepared_dir: Path,
-    part: Mapping[str, Any],
-    feature_names: Sequence[str],
-    batch_size: int,
-) -> Path:
-    """Build a disk-backed float32 matrix without materializing a Parquet part."""
-    cache_path = _feature_cache_path(prepared_dir, part, feature_names)
-    expected_shape = (int(part["rows"]), len(feature_names))
-    if cache_path.exists():
-        try:
-            cached = np.load(cache_path, mmap_mode="r", allow_pickle=False)
-            if cached.shape == expected_shape and cached.dtype == np.float32:
-                return cache_path
-            del cached
-        except (OSError, ValueError):
-            pass
-        cache_path.unlink()
+    def __init__(self, feature_names: Sequence[str], max_bytes: int) -> None:
+        if max_bytes <= 0:
+            raise ValueError("Parquet row-group cache size must be positive")
+        self.feature_names = list(feature_names)
+        self.max_bytes = int(max_bytes)
+        self.current_bytes = 0
+        self._entries: OrderedDict[tuple[Path, int], np.ndarray] = OrderedDict()
 
-    import pyarrow.parquet as pq
+    def get(self, path: Path, row_group: int) -> np.ndarray:
+        key = (path, int(row_group))
+        cached = self._entries.pop(key, None)
+        if cached is not None:
+            self._entries[key] = cached
+            return cached
 
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = cache_path.with_name(f"{cache_path.name}.tmp-{os.getpid()}.npy")
-    LOGGER.info(
-        "Streaming %s rows from %s into a %.1f MiB disk-backed feature cache",
-        expected_shape[0], part["path"],
-        expected_shape[0] * expected_shape[1] * np.dtype(np.float32).itemsize / (1024 ** 2),
-    )
-    matrix: np.memmap | None = np.lib.format.open_memmap(
-        temporary, mode="w+", dtype=np.float32, shape=expected_shape
-    )
-    offset = 0
-    try:
-        parquet = pq.ParquetFile(prepared_dir / str(part["path"]))
-        for batch in parquet.iter_batches(batch_size=batch_size, columns=list(feature_names)):
-            rows = int(batch.num_rows)
-            for column_index in range(len(feature_names)):
-                matrix[offset:offset + rows, column_index] = np.asarray(
-                    batch.column(column_index).to_numpy(zero_copy_only=False), dtype=np.float32
-                )
-            offset += rows
-        if offset != expected_shape[0]:
-            raise AssertionError(
-                f"Prepared Parquet metadata mismatch: expected {expected_shape[0]} rows, read {offset}"
+        import pyarrow.parquet as pq
+
+        table = pq.ParquetFile(path).read_row_group(
+            row_group, columns=self.feature_names, use_threads=False
+        )
+        matrix = np.empty((table.num_rows, len(self.feature_names)), dtype=np.float32)
+        for column_index in range(len(self.feature_names)):
+            matrix[:, column_index] = np.asarray(
+                table.column(column_index).to_numpy(zero_copy_only=False), dtype=np.float32
             )
-        matrix.flush()
-        del matrix
-        matrix = None
-        os.replace(temporary, cache_path)
-        LOGGER.info("Feature cache ready: %s", cache_path)
-    except BaseException:
-        if matrix is not None:
-            del matrix
-        temporary.unlink(missing_ok=True)
-        raise
-    return cache_path
+        del table
+
+        while self._entries and self.current_bytes + matrix.nbytes > self.max_bytes:
+            _, evicted = self._entries.popitem(last=False)
+            self.current_bytes -= evicted.nbytes
+        self._entries[key] = matrix
+        self.current_bytes += matrix.nbytes
+        return matrix
 
 
 def _sequence_for_part(
@@ -286,34 +250,68 @@ def _sequence_for_part(
     part: Mapping[str, Any],
     feature_names: Sequence[str],
     batch_size: int,
+    row_group_cache: ParquetRowGroupCache,
 ) -> Any:
     class ParquetPartSequence(lgb.Sequence):
         def __init__(self) -> None:
+            import pyarrow.parquet as pq
+
             self.path = prepared_dir / str(part["path"])
             self.rows = int(part["rows"])
             self.columns = list(feature_names)
             self.batch_size = int(batch_size)
-            self._cache_path: Path | None = None
-            self._array: np.memmap | None = None
+            metadata = pq.ParquetFile(self.path).metadata
+            row_group_rows = [metadata.row_group(i).num_rows for i in range(metadata.num_row_groups)]
+            self._row_group_offsets = np.concatenate(
+                ([0], np.cumsum(row_group_rows, dtype=np.int64))
+            )
+            if int(self._row_group_offsets[-1]) != self.rows:
+                raise AssertionError(f"Prepared row count disagrees with Parquet metadata: {self.path}")
 
         def __len__(self) -> int:
             return self.rows
 
-        def _values(self) -> np.memmap:
-            if self._array is None:
-                self._cache_path = _ensure_feature_cache(
-                    prepared_dir, part, self.columns, self.batch_size
-                )
-                self._array = np.load(
-                    self._cache_path, mmap_mode="r", allow_pickle=False
-                )
-            return self._array
+        def _row_group_for_index(self, index: int) -> int:
+            return int(np.searchsorted(self._row_group_offsets, index, side="right") - 1)
+
+        def _read_range(self, start: int, stop: int) -> np.ndarray:
+            output = np.empty((stop - start, len(self.columns)), dtype=np.float32)
+            output_offset = 0
+            cursor = start
+            while cursor < stop:
+                row_group = self._row_group_for_index(cursor)
+                group_start = int(self._row_group_offsets[row_group])
+                group_stop = int(self._row_group_offsets[row_group + 1])
+                source_stop = min(stop, group_stop)
+                values = row_group_cache.get(self.path, row_group)
+                count = source_stop - cursor
+                output[output_offset:output_offset + count] = values[
+                    cursor - group_start:source_stop - group_start
+                ]
+                cursor = source_stop
+                output_offset += count
+            return output
 
         def __getitem__(self, index: Any) -> np.ndarray:
             # LightGBM's random Sequence sampler requires double precision rows.
-            # Sequential construction accepts float32, halving the transient batch.
-            dtype = np.float32 if isinstance(index, slice) else np.float64
-            return np.array(self._values()[index], dtype=dtype, copy=True)
+            # Sequential construction accepts float32, halving transient memory.
+            if isinstance(index, slice):
+                start, stop, step = index.indices(self.rows)
+                if step != 1:
+                    raise ValueError("LightGBM Parquet Sequence only supports contiguous slices")
+                return self._read_range(start, stop)
+            row = int(index)
+            if row < 0:
+                row += self.rows
+            if row < 0 or row >= self.rows:
+                raise IndexError(row)
+            row_group = self._row_group_for_index(row)
+            group_start = int(self._row_group_offsets[row_group])
+            return np.array(
+                row_group_cache.get(self.path, row_group)[row - group_start],
+                dtype=np.float64,
+                copy=True,
+            )
 
     return ParquetPartSequence()
 
@@ -352,10 +350,17 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     batch_size = int(config["dataset"].get("sequence_batch_rows", 8192))
     if batch_size <= 0:
         raise ValueError("dataset.sequence_batch_rows must be positive")
+    row_group_cache_mb = int(config["dataset"].get("sequence_row_group_cache_mb", 128))
+    if row_group_cache_mb <= 0:
+        raise ValueError("dataset.sequence_row_group_cache_mb must be positive")
+    row_group_cache = ParquetRowGroupCache(
+        feature_names, max_bytes=row_group_cache_mb * 1024 * 1024
+    )
     if not profile["safe_to_materialize_for_lightgbm"]:
         LOGGER.info(
             "Raw full-matrix materialization is unsafe; constructing LightGBM Datasets from "
-            "Parquet Sequences with %d rows per batch", batch_size,
+            "Parquet Sequences with %d rows per batch and a shared %d MiB row-group cache",
+            batch_size, row_group_cache_mb,
         )
     features: dict[str, LazyParquetFeatures] = {}
     labels: dict[str, np.ndarray] = {}
@@ -366,7 +371,9 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         labels[split] = _read_split_labels(prepared, parts)
         if split != "test":
             sequences[split] = [
-                _sequence_for_part(lgb, prepared, part, feature_names, batch_size)
+                _sequence_for_part(
+                    lgb, prepared, part, feature_names, batch_size, row_group_cache
+                )
                 for part in parts
             ]
     observed_set: set[int] = set()
