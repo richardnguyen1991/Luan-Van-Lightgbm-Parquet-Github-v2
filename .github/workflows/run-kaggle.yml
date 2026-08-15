@@ -172,6 +172,7 @@ jobs:
             --output .kaggle_bundle/s3_presigned_config.json \
             --bucket "${S3_BUCKET}" \
             --s3-prefix "${S3_PREFIX}" \
+            --run-id "$(python -c 'import json; print(json.load(open("config/orchestration.json"))["run_id"])')" \
             --expires 86400 \
             --region "${AWS_DEFAULT_REGION}"
           python scripts/build_kaggle_notebook.py \
@@ -194,7 +195,7 @@ jobs:
           assert metadata["enable_gpu"] == "false"
           assert metadata["enable_tpu"] == "false"
           assert metadata["machine_shape"] == ""
-          assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet-per-classes"]
+          assert metadata["dataset_sources"] == ["dungnguyen28101991/cicddos2019-parquet"]
           source = "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
           assert "LightGBM device=CPU" in source
           assert "PRESIGNED_CONFIG_ZLIB_B64" in source
@@ -240,3 +241,4 @@ jobs:
           else
             echo "::warning title=Kaggle session not launched::${reason}"
           fi
+
