@@ -35,6 +35,11 @@ class ContractAndMetricTest(unittest.TestCase):
     def test_fixed_baseline_contract(self) -> None:
         config = load_train_config(PROJECT_ROOT / "config" / "train.json")
         validate_training_config(config)
+        self.assertFalse(config["model_params"]["is_enable_sparse"])
+        config["model_params"]["is_enable_sparse"] = True
+        with self.assertRaisesRegex(ValueError, "is_enable_sparse"):
+            validate_training_config(config)
+        config["model_params"]["is_enable_sparse"] = False
         config["num_boost_round"] = 99
         with self.assertRaisesRegex(ValueError, "exactly 100"):
             validate_training_config(config)

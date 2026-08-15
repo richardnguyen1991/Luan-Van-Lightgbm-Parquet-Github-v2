@@ -110,6 +110,8 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
             config["dataset"]["sequence_batch_rows"] = 7
             config["dataset"]["sequence_row_group_cache_entries"] = 1
             bundle = build_datasets(prepared, config)
+            self.assertFalse(bundle.params["is_enable_sparse"])
+            self.assertFalse(bundle.train_dataset.get_params()["is_enable_sparse"])
             booster = lightgbm.train(
                 bundle.params, bundle.train_dataset, num_boost_round=2,
                 valid_sets=[bundle.validation_dataset], valid_names=["validation"],

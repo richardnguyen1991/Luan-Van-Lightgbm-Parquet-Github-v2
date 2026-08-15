@@ -29,6 +29,7 @@
     "deterministic": true,
     "force_col_wise": true,
     "force_row_wise": false,
+    "is_enable_sparse": false,
     "seed": 2026,
     "bagging_seed": 2026,
     "feature_fraction_seed": 2026,
