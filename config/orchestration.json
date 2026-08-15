@@ -1,7 +1,8 @@
 {
   "kaggle_kernel": "dungnguyen28101991/luan-van-lightgbm-parquet-github-v2",
-  "dataset_source": "dungnguyen28101991/cicddos2019-parquet-per-classes",
+  "dataset_source": "dungnguyen28101991/cicddos2019-parquet",
   "project_name": "Luan-Van-LightGBM-Parquet-Github-v2",
+  "run_id": "lightgbm_sample10m_20260815",
   "target_iteration": 100,
   "schedule_minutes": 30,
   "recent_push_guard_minutes": 45,

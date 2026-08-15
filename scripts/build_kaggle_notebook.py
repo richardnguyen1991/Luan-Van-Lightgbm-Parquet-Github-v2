@@ -58,7 +58,7 @@ def build_notebook(
     presigned_bytes = Path(presigned_config).read_bytes() if presigned_config else b""
     presigned_b64 = base64.b64encode(zlib.compress(presigned_bytes, level=9)).decode("ascii") if presigned_bytes else ""
     description = (
-        "Production: full natural-distribution train split and exactly 100 boosting iterations."
+        "Production: an exact deterministic 10,000,000-row proportional sample, natural class distribution, and exactly 100 boosting iterations."
         if profile == "production"
         else "Smoke: 2,000 rows per source file and at most 10 new iterations in this session; target remains exactly 100."
     )
@@ -161,7 +161,7 @@ import psutil
 host_ram_gib = psutil.virtual_memory().total / (1024 ** 3)
 print(f"LightGBM={lgb.__version__}; LightGBM device=CPU; Kaggle accelerator=none; RAM={host_ram_gib:.1f} GiB")
 '''
-    prepare = f'''preferred = Path("/kaggle/input/cicddos2019-parquet-per-classes")
+    prepare = f'''preferred = Path("/kaggle/input/cicddos2019-parquet")
 if preferred.exists():
     data_dir = preferred
 else:
@@ -236,7 +236,7 @@ else:
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python", "version": "3"},
-            "kaggle": {"accelerator": "none", "dataSources": ["dungnguyen28101991/cicddos2019-parquet-per-classes"]},
+            "kaggle": {"accelerator": "none", "dataSources": ["dungnguyen28101991/cicddos2019-parquet"]},
         },
         "nbformat": 4,
         "nbformat_minor": 5,

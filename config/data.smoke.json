@@ -1,6 +1,6 @@
 {
   "dataset": {
-    "data_dir": "/kaggle/input/cicddos2019-parquet-per-classes",
+    "data_dir": "/kaggle/input/cicddos2019-parquet",
     "file_pattern": "**/*.parquet",
     "target_column": null,
     "target_column_candidates": ["Label", "label", "Class", "class", "target", "Target"],

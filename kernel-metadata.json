@@ -10,7 +10,7 @@
   "enable_internet": "true",
   "machine_shape": "",
   "dataset_sources": [
-    "dungnguyen28101991/cicddos2019-parquet-per-classes"
+    "dungnguyen28101991/cicddos2019-parquet"
   ],
   "competition_sources": [],
   "kernel_sources": [],
