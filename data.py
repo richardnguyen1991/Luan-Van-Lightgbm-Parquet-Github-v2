@@ -1,8 +1,9 @@
 """Prepare leakage-safe CIC-DDoS2019 Parquet splits for LightGBM.
 
 The split is assigned before feature conversion or LightGBM Dataset creation.
-Rows are never balanced, sampled, weighted, or normalized.  Large inputs are
-processed one Parquet row group at a time and written as split-specific parts.
+Rows are never balanced, weighted, or normalized.  Production can use an exact,
+deterministic proportional sample before splitting.  Large inputs are processed
+one Parquet row group at a time and written as split-specific parts.
 """
 
 from __future__ import annotations
@@ -113,6 +114,64 @@ def select_group_columns(columns: Sequence[str], candidates: Sequence[Sequence[s
 def source_file_id(relative_path: str) -> int:
     normalized = relative_path.replace("\\", "/")
     return int.from_bytes(hashlib.blake2b(normalized.encode("utf-8"), digest_size=8).digest(), "big")
+
+
+def allocate_proportional_sample_quotas(
+    physical_rows: Mapping[str, int], target_total_rows: int
+) -> dict[str, int]:
+    """Allocate exactly target_total_rows with minimum proportional rounding error."""
+    if target_total_rows <= 0:
+        raise ValueError("dataset.target_total_rows must be positive")
+    total_rows = sum(int(value) for value in physical_rows.values())
+    if total_rows <= 0:
+        raise ValueError("Cannot sample an empty dataset")
+    target = min(int(target_total_rows), total_rows)
+    quotas = {
+        path: target * int(rows) // total_rows for path, rows in physical_rows.items()
+    }
+    remaining = target - sum(quotas.values())
+    ranked = sorted(
+        physical_rows,
+        key=lambda path: (-(target * int(physical_rows[path]) % total_rows), path),
+    )
+    for path in ranked[:remaining]:
+        quotas[path] += 1
+    assert sum(quotas.values()) == target
+    assert all(0 <= quotas[path] <= int(rows) for path, rows in physical_rows.items())
+    return quotas
+
+
+def deterministic_sample_row_ids(file_id: int, physical_rows: int, quota: int, seed: int) -> np.ndarray:
+    """Select an exact, repeatable simple-random sample without replacement."""
+    if not 0 <= quota <= physical_rows:
+        raise ValueError("Sample quota must be between zero and the physical row count")
+    if quota == physical_rows:
+        return np.arange(physical_rows, dtype=np.uint64)
+    seed_sequence = np.random.SeedSequence([
+        int(seed), int(file_id & 0xFFFFFFFF), int((file_id >> 32) & 0xFFFFFFFF)
+    ])
+    rng = np.random.default_rng(seed_sequence)
+    return np.sort(rng.choice(physical_rows, size=quota, replace=False, shuffle=False)).astype(
+        np.uint64, copy=False
+    )
+
+
+def build_sampling_plan(files: Sequence[Path], root: Path, dataset_cfg: Mapping[str, Any]) -> dict[str, int]:
+    physical = {
+        path.relative_to(root).as_posix(): int(pq.ParquetFile(path).metadata.num_rows)
+        for path in files
+    }
+    samples_per_file = dataset_cfg.get("samples_per_file")
+    target_total_rows = dataset_cfg.get("target_total_rows")
+    if samples_per_file is not None and target_total_rows is not None:
+        raise ValueError("samples_per_file and target_total_rows are mutually exclusive")
+    if target_total_rows is not None:
+        return allocate_proportional_sample_quotas(physical, int(target_total_rows))
+    if samples_per_file is not None:
+        if int(samples_per_file) <= 0:
+            raise ValueError("dataset.samples_per_file must be positive")
+        return {path: min(rows, int(samples_per_file)) for path, rows in physical.items()}
+    return physical
 
 
 def _splitmix64(values: np.ndarray) -> np.ndarray:
@@ -321,21 +380,22 @@ def _drop_reasons(
 
 
 def profile_dataset(
-    files: Sequence[Path], root: Path, feature_count: int, config: Mapping[str, Any]
+    files: Sequence[Path], root: Path, feature_count: int, config: Mapping[str, Any],
+    sampling_plan: Mapping[str, int],
 ) -> dict[str, Any]:
-    samples_per_file = config["dataset"].get("samples_per_file")
     records: list[dict[str, Any]] = []
     total_rows = 0
     total_compressed = 0
     for path in files:
         parquet = pq.ParquetFile(path)
         physical_rows = int(parquet.metadata.num_rows)
-        selected_rows = min(physical_rows, int(samples_per_file)) if samples_per_file is not None else physical_rows
+        relative = path.relative_to(root).as_posix()
+        selected_rows = int(sampling_plan[relative])
         size = int(path.stat().st_size)
         total_rows += selected_rows
         total_compressed += size
         records.append({
-            "path": path.relative_to(root).as_posix(),
+            "path": relative,
             "physical_rows": physical_rows,
             "selected_rows": selected_rows,
             "columns": int(parquet.metadata.num_columns),
@@ -540,7 +600,8 @@ def prepare_dataset(
     if not features:
         raise ValueError("No numeric feature columns remain after exclusions")
 
-    profile = profile_dataset(files, root, len(features), config)
+    sampling_plan = build_sampling_plan(files, root, dataset_cfg)
+    profile = profile_dataset(files, root, len(features), config, sampling_plan)
     profile["source_dtypes"] = arrow_types
     atomic_json_dump(profile, destination / "data_profile.json")
 
@@ -591,6 +652,8 @@ def prepare_dataset(
             destination / ".leakage_audit.sqlite", int(config["audit"]["sqlite_batch_rows"])
         )
     samples_per_file = dataset_cfg.get("samples_per_file")
+    target_total_rows = dataset_cfg.get("target_total_rows")
+    sampling_seed = int(dataset_cfg.get("sampling_seed", split_cfg["seed"]))
     if preprocessing_store is not None:
         preprocessing_store.set_active("preparing", len(completed_files), len(files))
     try:
@@ -601,9 +664,24 @@ def prepare_dataset(
             file_id = source_file_id(relative)
             physical_rows = int(pq.ParquetFile(path).metadata.num_rows)
             selected_rows = min(physical_rows, int(samples_per_file)) if samples_per_file is not None else None
+            sampled_row_ids = None
+            if target_total_rows is not None:
+                sampled_row_ids = deterministic_sample_row_ids(
+                    file_id, physical_rows, int(sampling_plan[relative]), sampling_seed
+                )
             rows_processed = 0
             for frame, offset in _iter_file_chunks(path, selected_rows):
                 row_ids = np.arange(offset, offset + len(frame), dtype=np.uint64)
+                if sampled_row_ids is not None:
+                    left = int(np.searchsorted(sampled_row_ids, np.uint64(offset), side="left"))
+                    right = int(np.searchsorted(sampled_row_ids, np.uint64(offset + len(frame)), side="left"))
+                    selected_in_group = sampled_row_ids[left:right]
+                    if not len(selected_in_group):
+                        del frame, row_ids
+                        continue
+                    positions = (selected_in_group - np.uint64(offset)).astype(np.int64, copy=False)
+                    frame = frame.iloc[positions].copy()
+                    row_ids = selected_in_group
                 if target is None:
                     labels = pd.Series([path.stem] * len(frame), dtype="string")
                 else:
@@ -640,8 +718,13 @@ def prepare_dataset(
                 "path": relative,
                 "source_file_id_hex": f"{file_id:016x}",
                 "physical_rows": physical_rows,
+                "planned_sample_rows": int(sampling_plan[relative]),
                 "rows_processed": rows_processed,
             })
+            if rows_processed != int(sampling_plan[relative]):
+                raise RuntimeError(
+                    f"Sampling count mismatch for {relative}: {rows_processed} != {sampling_plan[relative]}"
+                )
             writer.flush_all()
             completed_files.add(relative)
             progress_payload = {
@@ -712,8 +795,20 @@ def prepare_dataset(
         "manifest_version": 1,
         "dataset_root": str(root),
         "file_pattern": dataset_cfg["file_pattern"],
-        "sampling_mode": "full" if samples_per_file is None else "smoke_prefix_per_file",
+        "sampling_mode": (
+            "deterministic_proportional_exact_total"
+            if target_total_rows is not None
+            else ("full" if samples_per_file is None else "smoke_prefix_per_file")
+        ),
         "samples_per_file": samples_per_file,
+        "target_total_rows": target_total_rows,
+        "sampling_seed": sampling_seed if target_total_rows is not None else None,
+        "sampling_method": (
+            "Per-file quotas use largest-remainder proportional allocation by physical row count; "
+            "rows are sampled uniformly without replacement using a stable file-specific seeded generator."
+            if target_total_rows is not None else None
+        ),
+        "class_rebalancing": "none",
         "source_files": source_inventory,
         "sample_id_definition": {
             "fields": [GENERATED_SAMPLE_FILE_COLUMN, GENERATED_SAMPLE_ROW_COLUMN],
@@ -770,6 +865,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", default=None)
     parser.add_argument("--output-dir", default="outputs/data")
     parser.add_argument("--samples-per-file", type=int, default=None)
+    parser.add_argument("--target-total-rows", type=int, default=None)
     parser.add_argument("--s3-config", default=None)
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--maximum-hours", type=float, default=0.0)
@@ -786,6 +882,12 @@ def main() -> int:
         if args.samples_per_file <= 0:
             raise ValueError("--samples-per-file must be positive")
         config["dataset"]["samples_per_file"] = args.samples_per_file
+        config["dataset"]["target_total_rows"] = None
+    if args.target_total_rows is not None:
+        if args.target_total_rows <= 0:
+            raise ValueError("--target-total-rows must be positive")
+        config["dataset"]["samples_per_file"] = None
+        config["dataset"]["target_total_rows"] = args.target_total_rows
     store = None
     if args.s3_config or args.run_id:
         if not args.s3_config or not args.run_id:
@@ -816,3 +918,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
