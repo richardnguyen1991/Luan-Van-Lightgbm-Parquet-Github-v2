@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import ctypes
 import gc
 import json
 import logging
 import math
 import re
+import sys
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -218,6 +220,22 @@ class ParquetRowGroupCache:
         self.current_bytes = 0
         self.misses = 0
         self._entries: OrderedDict[tuple[Path, int], np.ndarray] = OrderedDict()
+        self._reusable_buffer: np.ndarray | None = None
+
+    @staticmethod
+    def _trim_process_heap() -> None:
+        """Return freed native pages to Linux instead of retaining them until exit."""
+        if not sys.platform.startswith("linux"):
+            return
+        try:
+            malloc_trim = ctypes.CDLL(None).malloc_trim
+            malloc_trim.argtypes = [ctypes.c_size_t]
+            malloc_trim.restype = ctypes.c_int
+            malloc_trim(0)
+        except (AttributeError, OSError):
+            # Non-glibc Linux images do not expose malloc_trim(). Arrow's pool
+            # release below remains the portable best-effort fallback.
+            return
 
     @staticmethod
     def _release_arrow_memory() -> int:
@@ -226,6 +244,7 @@ class ParquetRowGroupCache:
         gc.collect()
         pool = pa.default_memory_pool()
         pool.release_unused()
+        ParquetRowGroupCache._trim_process_heap()
         return int(pool.bytes_allocated())
 
     def get(self, path: Path, row_group: int) -> np.ndarray:
@@ -244,15 +263,40 @@ class ParquetRowGroupCache:
         while len(self._entries) >= self.max_entries:
             _, evicted = self._entries.popitem(last=False)
             self.current_bytes -= evicted.nbytes
-            del evicted
+            if self.max_entries == 1 and evicted.flags.c_contiguous:
+                # LightGBM consumes each returned slice synchronously. Keeping
+                # one backing allocation and overwriting it for the next row
+                # group avoids severe allocator fragmentation after hundreds
+                # of differently-sized Parquet row groups.
+                reusable = evicted
+                while isinstance(reusable.base, np.ndarray):
+                    reusable = reusable.base
+                self._reusable_buffer = reusable
+            else:
+                del evicted
             evicted_any = True
         if evicted_any:
             self._release_arrow_memory()
 
-        table = pq.ParquetFile(path, memory_map=True, pre_buffer=False).read_row_group(
-            row_group, columns=self.feature_names, use_threads=False
-        )
-        matrix = np.empty((table.num_rows, len(self.feature_names)), dtype=np.float32)
+        parquet_file = pq.ParquetFile(path, memory_map=False, pre_buffer=False)
+        try:
+            table = parquet_file.read_row_group(
+                row_group, columns=self.feature_names, use_threads=False
+            )
+        finally:
+            # Do not leave a file-wide memory map or Arrow RandomAccessFile to
+            # the garbage collector. On Kaggle this was retaining many GiB of
+            # resident pages even though Arrow reported a zero-byte pool.
+            parquet_file.close(force=True)
+
+        required_shape = (table.num_rows, len(self.feature_names))
+        reusable = self._reusable_buffer
+        if reusable is not None and reusable.shape[0] >= table.num_rows:
+            matrix = reusable[:table.num_rows]
+            self._reusable_buffer = None
+        else:
+            self._reusable_buffer = None
+            matrix = np.empty(required_shape, dtype=np.float32)
         for column_index in range(len(self.feature_names)):
             matrix[:, column_index] = np.asarray(
                 table.column(column_index).to_numpy(zero_copy_only=False), dtype=np.float32
@@ -291,8 +335,14 @@ def _sequence_for_part(
             self.rows = int(part["rows"])
             self.columns = list(feature_names)
             self.batch_size = int(batch_size)
-            metadata = pq.ParquetFile(self.path).metadata
-            row_group_rows = [metadata.row_group(i).num_rows for i in range(metadata.num_row_groups)]
+            parquet_file = pq.ParquetFile(self.path, memory_map=False, pre_buffer=False)
+            try:
+                metadata = parquet_file.metadata
+                row_group_rows = [
+                    metadata.row_group(i).num_rows for i in range(metadata.num_row_groups)
+                ]
+            finally:
+                parquet_file.close(force=True)
             self._row_group_offsets = np.concatenate(
                 ([0], np.cumsum(row_group_rows, dtype=np.int64))
             )
