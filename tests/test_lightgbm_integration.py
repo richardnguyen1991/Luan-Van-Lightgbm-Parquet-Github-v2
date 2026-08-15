@@ -11,10 +11,39 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from model import IterationRecorder, TrainingPauseRequested, build_datasets, macro_f1_metric  # noqa: E402
+from model import (  # noqa: E402
+    IterationRecorder,
+    ParquetRowGroupCache,
+    TrainingPauseRequested,
+    build_datasets,
+    macro_f1_metric,
+)
 
 
 class LightGBMResumeIntegrationTest(unittest.TestCase):
+    def test_row_group_cache_evicts_before_decoding_the_next_group(self) -> None:
+        try:
+            import pyarrow.parquet as pq
+        except ImportError:
+            self.skipTest("PyArrow is required")
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "many-row-groups.parquet"
+            rows = 4096
+            frame = pd.DataFrame({
+                "a": np.arange(rows, dtype=np.float32),
+                "b": np.linspace(0, 1, rows, dtype=np.float32),
+            })
+            frame.to_parquet(path, index=False, row_group_size=128)
+            parquet = pq.ParquetFile(path)
+            self.assertGreater(parquet.num_row_groups, 20)
+            cache = ParquetRowGroupCache(["a", "b"], max_entries=1)
+            for row_group in range(parquet.num_row_groups):
+                values = cache.get(path, row_group)
+                self.assertEqual(values.shape[1], 2)
+                self.assertEqual(len(cache._entries), 1)
+                self.assertEqual(cache.current_bytes, values.nbytes)
+            del parquet
+
     def test_parquet_sequence_uses_bounded_memory_cache_and_does_not_build_test_dataset(self) -> None:
         try:
             import lightgbm  # noqa: F401
@@ -56,7 +85,7 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
                 (prepared / name).write_text(json.dumps(payload), encoding="utf-8")
             config = json.loads((PROJECT_ROOT / "config" / "train.json").read_text(encoding="utf-8"))
             config["dataset"]["sequence_batch_rows"] = 7
-            config["dataset"]["sequence_row_group_cache_mb"] = 1
+            config["dataset"]["sequence_row_group_cache_entries"] = 1
             bundle = build_datasets(prepared, config)
             booster = lightgbm.train(
                 bundle.params, bundle.train_dataset, num_boost_round=2,

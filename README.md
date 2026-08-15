@@ -6,9 +6,9 @@ lưu checkpoint S3 mỗi 10 boosting iterations, tự tiếp tục sau khi sessi
 và chỉ hoàn tất khi model đạt chính xác iteration 100 cùng bộ báo cáo cuối.
 
 Khi dữ liệu thô không thể materialize an toàn trong RAM, pipeline giải mã từng Parquet row-group
-thành NumPy `float32` trong bộ đệm LRU dùng chung và bị giới hạn dung lượng. Pipeline không tạo
-bản sao `.npy` của toàn bộ dữ liệu nên không làm đầy ổ Kaggle. Chỉ train và validation được dựng
-thành LightGBM Dataset; test vẫn ở dạng Parquet lazy cho đến báo cáo cuối.
+thành NumPy `float32` trong bộ đệm LRU dùng chung. Production chỉ giữ đúng một row-group và giải
+phóng Arrow memory pool trước khi đọc row-group kế tiếp, nên không tích lũy RAM hoặc tạo bản sao
+`.npy` làm đầy ổ Kaggle. Chỉ train và validation được dựng thành LightGBM Dataset; test vẫn lazy.
 
 ## Hợp đồng thí nghiệm
 
