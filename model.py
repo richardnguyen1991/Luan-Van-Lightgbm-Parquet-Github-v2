@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import json
 import logging
 import math
@@ -209,13 +210,23 @@ class ParquetRowGroupCache:
     uncompressed NumPy file.
     """
 
-    def __init__(self, feature_names: Sequence[str], max_bytes: int) -> None:
-        if max_bytes <= 0:
-            raise ValueError("Parquet row-group cache size must be positive")
+    def __init__(self, feature_names: Sequence[str], max_entries: int) -> None:
+        if max_entries <= 0:
+            raise ValueError("Parquet row-group cache entry count must be positive")
         self.feature_names = list(feature_names)
-        self.max_bytes = int(max_bytes)
+        self.max_entries = int(max_entries)
         self.current_bytes = 0
+        self.misses = 0
         self._entries: OrderedDict[tuple[Path, int], np.ndarray] = OrderedDict()
+
+    @staticmethod
+    def _release_arrow_memory() -> int:
+        import pyarrow as pa
+
+        gc.collect()
+        pool = pa.default_memory_pool()
+        pool.release_unused()
+        return int(pool.bytes_allocated())
 
     def get(self, path: Path, row_group: int) -> np.ndarray:
         key = (path, int(row_group))
@@ -226,7 +237,19 @@ class ParquetRowGroupCache:
 
         import pyarrow.parquet as pq
 
-        table = pq.ParquetFile(path).read_row_group(
+        # LightGBM requests random sample indices monotonically and then pushes
+        # all slices monotonically. Evict before decoding the next row group so
+        # the old NumPy matrix never overlaps the next Arrow table at peak.
+        evicted_any = False
+        while len(self._entries) >= self.max_entries:
+            _, evicted = self._entries.popitem(last=False)
+            self.current_bytes -= evicted.nbytes
+            del evicted
+            evicted_any = True
+        if evicted_any:
+            self._release_arrow_memory()
+
+        table = pq.ParquetFile(path, memory_map=True, pre_buffer=False).read_row_group(
             row_group, columns=self.feature_names, use_threads=False
         )
         matrix = np.empty((table.num_rows, len(self.feature_names)), dtype=np.float32)
@@ -235,12 +258,20 @@ class ParquetRowGroupCache:
                 table.column(column_index).to_numpy(zero_copy_only=False), dtype=np.float32
             )
         del table
-
-        while self._entries and self.current_bytes + matrix.nbytes > self.max_bytes:
-            _, evicted = self._entries.popitem(last=False)
-            self.current_bytes -= evicted.nbytes
+        arrow_bytes = self._release_arrow_memory()
         self._entries[key] = matrix
         self.current_bytes += matrix.nbytes
+        self.misses += 1
+        if self.misses == 1 or self.misses % 100 == 0:
+            import psutil
+
+            LOGGER.info(
+                "Parquet row-group reads=%d; NumPy cache=%.1f MiB; Arrow pool=%.1f MiB; RSS=%.1f MiB",
+                self.misses,
+                self.current_bytes / (1024 ** 2),
+                arrow_bytes / (1024 ** 2),
+                psutil.Process().memory_info().rss / (1024 ** 2),
+            )
         return matrix
 
 
@@ -350,17 +381,19 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     batch_size = int(config["dataset"].get("sequence_batch_rows", 8192))
     if batch_size <= 0:
         raise ValueError("dataset.sequence_batch_rows must be positive")
-    row_group_cache_mb = int(config["dataset"].get("sequence_row_group_cache_mb", 128))
-    if row_group_cache_mb <= 0:
-        raise ValueError("dataset.sequence_row_group_cache_mb must be positive")
+    row_group_cache_entries = int(
+        config["dataset"].get("sequence_row_group_cache_entries", 1)
+    )
+    if row_group_cache_entries <= 0:
+        raise ValueError("dataset.sequence_row_group_cache_entries must be positive")
     row_group_cache = ParquetRowGroupCache(
-        feature_names, max_bytes=row_group_cache_mb * 1024 * 1024
+        feature_names, max_entries=row_group_cache_entries
     )
     if not profile["safe_to_materialize_for_lightgbm"]:
         LOGGER.info(
             "Raw full-matrix materialization is unsafe; constructing LightGBM Datasets from "
-            "Parquet Sequences with %d rows per batch and a shared %d MiB row-group cache",
-            batch_size, row_group_cache_mb,
+            "Parquet Sequences with %d rows per batch and a shared %d-row-group cache",
+            batch_size, row_group_cache_entries,
         )
     features: dict[str, LazyParquetFeatures] = {}
     labels: dict[str, np.ndarray] = {}

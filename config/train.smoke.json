@@ -44,7 +44,7 @@
     "require_safe_memory_profile": true,
     "loading_strategy": "parquet_sequence",
     "sequence_batch_rows": 4096,
-    "sequence_row_group_cache_mb": 64,
+    "sequence_row_group_cache_entries": 1,
     "free_raw_data": true
   },
   "checkpoint": {
