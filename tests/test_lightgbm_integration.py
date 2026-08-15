@@ -44,6 +44,29 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
                 self.assertEqual(cache.current_bytes, values.nbytes)
             del parquet
 
+    def test_single_entry_cache_reuses_one_numpy_allocation(self) -> None:
+        try:
+            import pyarrow.parquet as pq
+        except ImportError:
+            self.skipTest("PyArrow is required")
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "equal-row-groups.parquet"
+            frame = pd.DataFrame({
+                "a": np.arange(1024, dtype=np.float32),
+                "b": np.linspace(0, 1, 1024, dtype=np.float32),
+            })
+            frame.to_parquet(path, index=False, row_group_size=128)
+            cache = ParquetRowGroupCache(["a", "b"], max_entries=1)
+            allocation_addresses = []
+            parquet = pq.ParquetFile(path)
+            row_groups = parquet.num_row_groups
+            parquet.close(force=True)
+            for row_group in range(row_groups):
+                values = cache.get(path, row_group)
+                allocation_addresses.append(values.__array_interface__["data"][0])
+            self.assertEqual(len(set(allocation_addresses)), 1)
+            self.assertEqual(cache.misses, 8)
+
     def test_parquet_sequence_uses_bounded_memory_cache_and_does_not_build_test_dataset(self) -> None:
         try:
             import lightgbm  # noqa: F401
