@@ -5,9 +5,13 @@ Pipeline huấn luyện baseline LightGBM đa lớp trên toàn bộ train split
 lưu checkpoint S3 mỗi 10 boosting iterations, tự tiếp tục sau khi session Kaggle kết thúc
 và chỉ hoàn tất khi model đạt chính xác iteration 100 cùng bộ báo cáo cuối.
 
+Khi dữ liệu thô không thể materialize an toàn trong RAM, pipeline chuyển từng Parquet batch
+sang NumPy `float32` disk cache rồi để LightGBM đọc qua memory map. Chỉ train và validation
+được dựng thành LightGBM Dataset; test vẫn ở dạng Parquet lazy cho đến báo cáo cuối.
+
 ## Hợp đồng thí nghiệm
 
-- `lightgbm.train` và đúng một `lgb.Dataset` cho mỗi split train/validation/test.
+- `lightgbm.train` dùng đúng một `lgb.Dataset` cho train và validation; test được đọc lazy khi báo cáo.
 - `objective=multiclass`, `learning_rate=0.001`, `num_boost_round=100` chính xác.
 - Không early stopping, tuning, feature selection, class/sample weight hoặc tái cân bằng.
 - Toàn bộ train split được dùng ở cả 100 vòng; validation chỉ theo dõi, test chỉ đánh giá cuối.

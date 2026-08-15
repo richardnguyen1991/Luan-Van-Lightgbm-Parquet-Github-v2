@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import gc
+import hashlib
 import json
 import logging
 import math
+import os
 import re
-import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -106,7 +106,6 @@ def effective_model_params(config: Mapping[str, Any], num_classes: int) -> dict[
 class DatasetBundle:
     train_dataset: Any
     validation_dataset: Any
-    test_dataset: Any
     features: dict[str, Any]
     labels: dict[str, np.ndarray]
     feature_names: list[str]
@@ -202,39 +201,119 @@ def lightgbm_safe_feature_names(feature_names: Sequence[str]) -> list[str]:
     return safe
 
 
-def _sequence_for_part(lgb: Any, prepared_dir: Path, part: Mapping[str, Any], feature_names: Sequence[str], batch_size: int) -> Any:
+def _feature_cache_path(
+    prepared_dir: Path, part: Mapping[str, Any], feature_names: Sequence[str]
+) -> Path:
+    source = prepared_dir / str(part["path"])
+    stat = source.stat()
+    identity = json.dumps(
+        {
+            "path": str(part["path"]),
+            "rows": int(part["rows"]),
+            "bytes": int(stat.st_size),
+            "mtime_ns": int(stat.st_mtime_ns),
+            "features": list(feature_names),
+            "dtype": "float32",
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    digest = hashlib.sha256(identity).hexdigest()
+    return prepared_dir / ".lightgbm_sequence_cache" / f"{digest}.npy"
+
+
+def _ensure_feature_cache(
+    prepared_dir: Path,
+    part: Mapping[str, Any],
+    feature_names: Sequence[str],
+    batch_size: int,
+) -> Path:
+    """Build a disk-backed float32 matrix without materializing a Parquet part."""
+    cache_path = _feature_cache_path(prepared_dir, part, feature_names)
+    expected_shape = (int(part["rows"]), len(feature_names))
+    if cache_path.exists():
+        try:
+            cached = np.load(cache_path, mmap_mode="r", allow_pickle=False)
+            if cached.shape == expected_shape and cached.dtype == np.float32:
+                return cache_path
+            del cached
+        except (OSError, ValueError):
+            pass
+        cache_path.unlink()
+
+    import pyarrow.parquet as pq
+
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = cache_path.with_name(f"{cache_path.name}.tmp-{os.getpid()}.npy")
+    LOGGER.info(
+        "Streaming %s rows from %s into a %.1f MiB disk-backed feature cache",
+        expected_shape[0], part["path"],
+        expected_shape[0] * expected_shape[1] * np.dtype(np.float32).itemsize / (1024 ** 2),
+    )
+    matrix: np.memmap | None = np.lib.format.open_memmap(
+        temporary, mode="w+", dtype=np.float32, shape=expected_shape
+    )
+    offset = 0
+    try:
+        parquet = pq.ParquetFile(prepared_dir / str(part["path"]))
+        for batch in parquet.iter_batches(batch_size=batch_size, columns=list(feature_names)):
+            rows = int(batch.num_rows)
+            for column_index in range(len(feature_names)):
+                matrix[offset:offset + rows, column_index] = np.asarray(
+                    batch.column(column_index).to_numpy(zero_copy_only=False), dtype=np.float32
+                )
+            offset += rows
+        if offset != expected_shape[0]:
+            raise AssertionError(
+                f"Prepared Parquet metadata mismatch: expected {expected_shape[0]} rows, read {offset}"
+            )
+        matrix.flush()
+        del matrix
+        matrix = None
+        os.replace(temporary, cache_path)
+        LOGGER.info("Feature cache ready: %s", cache_path)
+    except BaseException:
+        if matrix is not None:
+            del matrix
+        temporary.unlink(missing_ok=True)
+        raise
+    return cache_path
+
+
+def _sequence_for_part(
+    lgb: Any,
+    prepared_dir: Path,
+    part: Mapping[str, Any],
+    feature_names: Sequence[str],
+    batch_size: int,
+) -> Any:
     class ParquetPartSequence(lgb.Sequence):
         def __init__(self) -> None:
             self.path = prepared_dir / str(part["path"])
             self.rows = int(part["rows"])
             self.columns = list(feature_names)
             self.batch_size = int(batch_size)
-            self._cache: pd.DataFrame | None = None
+            self._cache_path: Path | None = None
+            self._array: np.memmap | None = None
 
         def __len__(self) -> int:
             return self.rows
 
+        def _values(self) -> np.memmap:
+            if self._array is None:
+                self._cache_path = _ensure_feature_cache(
+                    prepared_dir, part, self.columns, self.batch_size
+                )
+                self._array = np.load(
+                    self._cache_path, mmap_mode="r", allow_pickle=False
+                )
+            return self._array
+
         def __getitem__(self, index: Any) -> np.ndarray:
-            if self._cache is None:
-                self._cache = pd.read_parquet(self.path, columns=self.columns).astype(np.float32)
-                if len(self._cache) != self.rows or list(self._cache.columns) != self.columns:
-                    raise AssertionError(f"Prepared Parquet metadata mismatch: {self.path}")
-            selected = self._cache.iloc[index]
             # LightGBM's random Sequence sampler requires double precision rows.
             # Sequential construction accepts float32, halving the transient batch.
             dtype = np.float32 if isinstance(index, slice) else np.float64
-            values = selected.to_numpy(dtype=dtype, copy=True)
-            release = not isinstance(index, slice) or index.stop is None or int(index.stop) >= self.rows
-            if release:
-                self._cache = None
-                gc.collect()
-                if sys.platform.startswith("linux"):
-                    try:
-                        import ctypes
-                        ctypes.CDLL("libc.so.6").malloc_trim(0)
-                    except (ImportError, OSError):
-                        pass
-            return values
+            return np.array(self._values()[index], dtype=dtype, copy=True)
 
     return ParquetPartSequence()
 
@@ -285,9 +364,11 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         parts = manifest["parts"][split]
         features[split] = LazyParquetFeatures(prepared, parts, feature_names, model_feature_names)
         labels[split] = _read_split_labels(prepared, parts)
-        sequences[split] = [
-            _sequence_for_part(lgb, prepared, part, feature_names, batch_size) for part in parts
-        ]
+        if split != "test":
+            sequences[split] = [
+                _sequence_for_part(lgb, prepared, part, feature_names, batch_size)
+                for part in parts
+            ]
     observed_set: set[int] = set()
     for split in SPLIT_NAMES:
         observed_set.update(int(value) for value in np.unique(labels[split]))
@@ -308,10 +389,6 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         sequences["validation"], label=labels["validation"], reference=train_dataset,
         feature_name=model_feature_names, categorical_feature=[], free_raw_data=free_raw,
     )
-    test_dataset = lgb.Dataset(
-        sequences["test"], label=labels["test"], reference=train_dataset,
-        feature_name=model_feature_names, categorical_feature=[], free_raw_data=free_raw,
-    )
     schema_payload = {
         "feature_names": feature_names,
         "model_feature_names": model_feature_names,
@@ -322,7 +399,6 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
     return DatasetBundle(
         train_dataset=train_dataset,
         validation_dataset=validation_dataset,
-        test_dataset=test_dataset,
         features=features,
         labels=labels,
         feature_names=feature_names,

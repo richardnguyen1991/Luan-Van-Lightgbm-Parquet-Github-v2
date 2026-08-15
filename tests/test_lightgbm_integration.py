@@ -15,7 +15,7 @@ from model import IterationRecorder, TrainingPauseRequested, build_datasets, mac
 
 
 class LightGBMResumeIntegrationTest(unittest.TestCase):
-    def test_parquet_sequence_builds_all_three_datasets_without_full_frames(self) -> None:
+    def test_parquet_sequence_uses_disk_cache_and_does_not_build_test_dataset(self) -> None:
         try:
             import lightgbm  # noqa: F401
             import pyarrow  # noqa: F401
@@ -61,10 +61,12 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
                 bundle.params, bundle.train_dataset, num_boost_round=2,
                 valid_sets=[bundle.validation_dataset], valid_names=["validation"],
             )
-            bundle.test_dataset.construct()
             self.assertEqual(bundle.train_dataset.num_data(), sizes["train"])
             self.assertEqual(bundle.validation_dataset.num_data(), sizes["validation"])
-            self.assertEqual(bundle.test_dataset.num_data(), sizes["test"])
+            self.assertFalse(hasattr(bundle, "test_dataset"))
+            caches = list((prepared / ".lightgbm_sequence_cache").glob("*.npy"))
+            self.assertEqual(len(caches), len(parts["train"]) + len(parts["validation"]))
+            self.assertTrue(all(isinstance(np.load(path, mmap_mode="r"), np.memmap) for path in caches))
             self.assertEqual(bundle.features["test"].shape, (sizes["test"], 2))
             self.assertEqual(bundle.features["test"].iloc[2:5].shape, (3, 2))
             self.assertEqual(booster.feature_name(), ["f0000_f_0", "f0001_f_1_rate"])
