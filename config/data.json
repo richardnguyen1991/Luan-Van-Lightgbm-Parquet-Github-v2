@@ -1,6 +1,6 @@
 {
   "dataset": {
-    "data_dir": "/kaggle/input/cicddos2019-parquet-per-classes",
+    "data_dir": "/kaggle/input/cicddos2019-parquet",
     "file_pattern": "**/*.parquet",
     "target_column": null,
     "target_column_candidates": ["Label", "label", "Class", "class", "target", "Target"],
@@ -10,7 +10,9 @@
       ["Flow ID"],
       ["Source IP", "Destination IP", "Source Port", "Destination Port", "Protocol"]
     ],
-    "samples_per_file": null
+    "samples_per_file": null,
+    "target_total_rows": 10000000,
+    "sampling_seed": 2026
   },
   "split": {
     "train": 0.70,
@@ -49,3 +51,4 @@
     "fail_on_group_cross_split_overlap": true
   }
 }
+
