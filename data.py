@@ -352,14 +352,27 @@ def _arrow_is_numeric(field: pa.Field) -> bool:
     return pa.types.is_integer(field.type) or pa.types.is_floating(field.type) or pa.types.is_boolean(field.type)
 
 
+def normalized_schema_fields(schema: pa.Schema) -> dict[str, pa.Field]:
+    """Map stripped column names to fields and reject ambiguous whitespace collisions."""
+    fields: dict[str, pa.Field] = {}
+    for field in schema:
+        normalized = str(field.name).strip()
+        if not normalized:
+            raise ValueError("Parquet schema contains an empty column name after whitespace normalization")
+        if normalized in fields:
+            raise ValueError(f"Parquet schema has duplicate normalized column name: {normalized!r}")
+        fields[normalized] = field
+    return fields
+
+
 def _drop_reasons(
     columns: Sequence[str], target: str | None, group_columns: Sequence[str], schema: pa.Schema,
     preprocessing: Mapping[str, Any],
 ) -> tuple[list[str], dict[str, str], dict[str, str]]:
     explicit = {str(value).casefold() for value in preprocessing.get("explicit_drop_columns", [])}
     patterns = [re.compile(value, flags=re.IGNORECASE) for value in preprocessing.get("drop_name_patterns", [])]
-    arrow_types = {field.name: str(field.type) for field in schema}
-    field_map = {field.name: field for field in schema}
+    field_map = normalized_schema_fields(schema)
+    arrow_types = {name: str(field.type) for name, field in field_map.items()}
     drops: dict[str, str] = {}
     features: list[str] = []
     for column in columns:
@@ -583,8 +596,9 @@ def prepare_dataset(
     root = Path(dataset_cfg["data_dir"])
 
     schemas = [pq.ParquetFile(path).schema_arrow for path in files]
-    column_sets = [set(schema.names) for schema in schemas]
-    common_columns = [name for name in schemas[0].names if all(name in values for values in column_sets)]
+    normalized_fields = [normalized_schema_fields(schema) for schema in schemas]
+    column_sets = [set(fields) for fields in normalized_fields]
+    common_columns = [name for name in normalized_fields[0] if all(name in values for values in column_sets)]
     target = infer_column(common_columns, dataset_cfg.get("target_column"), dataset_cfg["target_column_candidates"])
     if target is None and not dataset_cfg.get("label_from_filename_if_missing", False):
         raise ValueError("No target column found and filename-derived labels are disabled")
