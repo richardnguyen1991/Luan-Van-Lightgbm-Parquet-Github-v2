@@ -49,7 +49,7 @@ class NotebookBundleTest(unittest.TestCase):
         self.assertEqual(train_config["model_params"]["histogram_pool_size"], 128.0)
         self.assertTrue(train_config["model_params"]["use_quantized_grad"])
         self.assertEqual(train_config["model_params"]["num_grad_quant_bins"], 16)
-        self.assertEqual(metadata["dataset_sources"], ["dungnguyen28101991/cicddos2019-parquet-per-classes"])
+        self.assertEqual(metadata["dataset_sources"], ["dungnguyen28101991/cicddos2019-parquet"])
         workflow = (PROJECT_ROOT / ".github" / "workflows" / "run-kaggle.yml").read_text(encoding="utf-8")
         self.assertIn('assert metadata["enable_tpu"] == "false"', workflow)
         self.assertIn('assert metadata["machine_shape"] == ""', workflow)
@@ -185,3 +185,4 @@ class WatchdogDecisionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
