@@ -11,10 +11,27 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from data import assign_row_split_codes, load_config, prepare_dataset  # noqa: E402
+from data import (  # noqa: E402
+    allocate_proportional_sample_quotas,
+    assign_row_split_codes,
+    deterministic_sample_row_ids,
+    load_config,
+    prepare_dataset,
+)
 
 
 class DataPipelineTest(unittest.TestCase):
+    def test_exact_proportional_sampling_is_deterministic(self) -> None:
+        quotas = allocate_proportional_sample_quotas({"a": 900, "b": 600, "c": 300}, 1000)
+        self.assertEqual(sum(quotas.values()), 1000)
+        self.assertEqual(quotas, {"a": 500, "b": 333, "c": 167})
+        first = deterministic_sample_row_ids(123, 10_000, 1_417, 2026)
+        second = deterministic_sample_row_ids(123, 10_000, 1_417, 2026)
+        np.testing.assert_array_equal(first, second)
+        self.assertEqual(len(first), 1_417)
+        self.assertEqual(len(np.unique(first)), 1_417)
+        self.assertTrue(np.all(first[:-1] < first[1:]))
+
     def test_row_split_is_deterministic_and_exclusive(self) -> None:
         rows = np.arange(100_000, dtype=np.uint64)
         first = assign_row_split_codes(123, rows, [0.70, 0.15, 0.15], 2026)
@@ -44,10 +61,17 @@ class DataPipelineTest(unittest.TestCase):
 
             config = load_config(PROJECT_ROOT / "config" / "data.json")
             config["dataset"]["data_dir"] = str(dataset)
+            config["dataset"]["target_total_rows"] = 900
             config["output"]["rows_per_part"] = 127
             manifest = prepare_dataset(config, output)
 
-            self.assertEqual(sum(manifest["split"]["sizes"].values()), 1800)
+            self.assertEqual(sum(manifest["split"]["sizes"].values()), 900)
+            self.assertEqual(manifest["sampling_mode"], "deterministic_proportional_exact_total")
+            self.assertEqual(manifest["target_total_rows"], 900)
+            self.assertEqual(
+                {item["path"]: item["rows_processed"] for item in manifest["source_files"]},
+                {"BENIGN.parquet": 450, "DrDoS_DNS.parquet": 300, "Syn.parquet": 150},
+            )
             self.assertTrue(manifest["split"]["group_aware"])
             self.assertTrue(manifest["leakage_audit"]["passed"])
             self.assertTrue(manifest["leakage_audit"]["sample_id_assertion_passed"])
@@ -80,9 +104,10 @@ class DataPipelineTest(unittest.TestCase):
 
             with (output / "data_profile.json").open(encoding="utf-8") as handle:
                 profile = json.load(handle)
-            self.assertEqual(profile["total_selected_rows"], 1800)
+            self.assertEqual(profile["total_selected_rows"], 900)
             self.assertEqual(profile["feature_count"], 2)
 
 
 if __name__ == "__main__":
     unittest.main()
+
