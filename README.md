@@ -13,6 +13,12 @@ của `lgb.Dataset` không tích lũy RSS sau hàng trăm row-group và không t
 làm đầy ổ Kaggle. Chỉ train và validation được dựng thành LightGBM Dataset;
 test vẫn lazy.
 
+Dữ liệu CIC-DDoS2019 có rất nhiều giá trị 0 và hàng trăm triệu hàng. Chế độ sparse tự động
+của LightGBM tích lũy hơn 20 GiB native memory trong khi `Dataset` được dựng. Vì vậy
+pipeline đặt `is_enable_sparse=false` để lưu các bin dạng dense có giới hạn. Đây chỉ
+thay đổi biểu diễn bộ nhớ nội bộ; không bỏ hàng, bỏ feature, tái cân bằng hay đổi
+100 boosting iterations và các siêu tham số học.
+
 ## Hợp đồng thí nghiệm
 
 - `lightgbm.train` dùng đúng một `lgb.Dataset` cho train và validation; test được đọc lazy khi báo cáo.

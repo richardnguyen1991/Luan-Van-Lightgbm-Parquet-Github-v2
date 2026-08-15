@@ -65,6 +65,7 @@ def validate_training_config(config: Mapping[str, Any]) -> None:
         "bagging_freq": 0,
         "device_type": "cpu",
         "deterministic": True,
+        "is_enable_sparse": False,
         "histogram_pool_size": 128.0,
         "use_quantized_grad": True,
         "num_grad_quant_bins": 16,
@@ -470,14 +471,26 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         if len(features[split]) != int(manifest["split"]["sizes"][split]):
             raise AssertionError(f"Prepared {split} row count disagrees with sample_manifest.json")
     params = effective_model_params(config, len(label_mapping))
+    if not bool(params["is_enable_sparse"]):
+        train_rows = int(manifest["split"]["sizes"]["train"])
+        validation_rows = int(manifest["split"]["sizes"]["validation"])
+        dense_cells = (train_rows + validation_rows) * len(feature_names)
+        LOGGER.info(
+            "Forcing dense LightGBM bins for %d train+validation rows x %d features "
+            "(%.2f billion cells); sparse native storage previously exceeded Kaggle RAM",
+            train_rows + validation_rows,
+            len(feature_names),
+            dense_cells / 1_000_000_000,
+        )
     free_raw = bool(config["dataset"].get("free_raw_data", True))
     train_dataset = lgb.Dataset(
         sequences["train"], label=labels["train"], feature_name=model_feature_names,
-        categorical_feature=[], free_raw_data=free_raw,
+        categorical_feature=[], params=params, free_raw_data=free_raw,
     )
     validation_dataset = lgb.Dataset(
         sequences["validation"], label=labels["validation"], reference=train_dataset,
-        feature_name=model_feature_names, categorical_feature=[], free_raw_data=free_raw,
+        feature_name=model_feature_names, categorical_feature=[], params=params,
+        free_raw_data=free_raw,
     )
     schema_payload = {
         "feature_names": feature_names,
