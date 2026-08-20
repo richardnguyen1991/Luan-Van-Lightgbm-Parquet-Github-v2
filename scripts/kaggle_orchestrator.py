@@ -66,6 +66,48 @@ class Decision:
     kernel_status: str
     session_attempts: int
     stagnant_restarts: int
+    report_restarts: int
+
+
+def made_durable_progress(active: Mapping[str, Any], state: Mapping[str, Any]) -> bool:
+    current = int(active.get("current_iteration", 0))
+    previous_iteration = int(state.get("last_observed_iteration", 0))
+    preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
+    previous_preprocessing_progress = int(state.get("last_preprocessing_completed_files", 0))
+    active_status = str(active.get("status", "missing")).casefold()
+    previous_status = str(state.get("last_active_status", "missing")).casefold()
+    lifecycle_progress = (
+        active_status != previous_status
+        and active_status in {"paused", "ready_for_report", "complete"}
+    )
+    return (
+        current > previous_iteration
+        or preprocessing_progress > previous_preprocessing_progress
+        or lifecycle_progress
+    )
+
+
+def orchestration_state_after_push(
+    previous: Mapping[str, Any],
+    active: Mapping[str, Any],
+    reason: str,
+    observed_iteration: int,
+    now_utc: str,
+) -> dict[str, Any]:
+    active_status = str(active.get("status", "missing")).casefold()
+    preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
+    progress = made_durable_progress(active, previous)
+    previous_report_restarts = int(previous.get("report_restarts", 0))
+    return {
+        "last_push_at": now_utc,
+        "last_push_reason": reason,
+        "last_observed_iteration": observed_iteration,
+        "last_preprocessing_completed_files": preprocessing_progress,
+        "last_active_status": active_status,
+        "session_attempts": 1 if progress else int(previous.get("session_attempts", 0)) + 1,
+        "stagnant_restarts": 0 if progress else int(previous.get("stagnant_restarts", 0)) + 1,
+        "report_restarts": previous_report_restarts + 1 if active_status == "ready_for_report" else 0,
+    }
 
 
 def decide_next_session(
@@ -79,12 +121,19 @@ def decide_next_session(
     active, state = dict(active or {}), dict(state or {})
     current = int(active.get("current_iteration", 0))
     active_status = str(active.get("status", "missing")).casefold()
+    configured_run_id = str(config.get("run_id", "")).strip()
+    active_run_id = str(active.get("run_id", "")).strip()
+    different_run = bool(configured_run_id and active_run_id and configured_run_id != active_run_id)
     attempts = int(state.get("session_attempts", 0))
     stagnant = int(state.get("stagnant_restarts", 0))
-    preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
-    previous_preprocessing_progress = int(state.get("last_preprocessing_completed_files", 0))
-    previous_iteration = int(state.get("last_observed_iteration", 0))
-    made_progress = current > previous_iteration or preprocessing_progress > previous_preprocessing_progress
+    report_restarts = int(state.get("report_restarts", 0))
+    if different_run:
+        current = 0
+        active_status = "different_run"
+        attempts = 0
+        stagnant = 0
+        report_restarts = 0
+    made_progress = made_durable_progress(active, state)
     if made_progress:
         # These limits protect against consecutive launches that make no durable
         # progress. They must not become lifetime counters that permanently lock
@@ -92,34 +141,64 @@ def decide_next_session(
         attempts = 0
         stagnant = 0
     if force:
-        return Decision(True, "manual force", current, kernel_status, attempts, stagnant)
+        return Decision(True, "manual force", current, kernel_status, attempts, stagnant, report_restarts)
     if active_status == "complete" and current == int(config["target_iteration"]):
-        return Decision(False, "iteration 100 and final report are complete", current, kernel_status, attempts, stagnant)
+        return Decision(False, "iteration 100 and final report are complete", current, kernel_status, attempts, stagnant, report_restarts)
     if kernel_status in {"running", "queued"}:
-        return Decision(False, f"Kaggle notebook is {kernel_status}", current, kernel_status, attempts, stagnant)
+        return Decision(False, f"Kaggle notebook is {kernel_status}", current, kernel_status, attempts, stagnant, report_restarts)
     if active_status == "running" and kernel_status == "unknown":
         heartbeat = parse_timestamp(active.get("updated_at"))
         stale_seconds = float(config["running_heartbeat_stale_hours"]) * 3600
         if heartbeat is None or now_timestamp - heartbeat < stale_seconds:
-            return Decision(False, "Kaggle status unknown and S3 heartbeat is not stale", current, kernel_status, attempts, stagnant)
+            return Decision(False, "Kaggle status unknown and S3 heartbeat is not stale", current, kernel_status, attempts, stagnant, report_restarts)
     last_push = parse_timestamp(state.get("last_push_at"))
     if last_push is not None and now_timestamp - last_push < int(config["recent_push_guard_minutes"]) * 60:
-        return Decision(False, "recent push guard is active", current, kernel_status, attempts, stagnant)
+        return Decision(False, "recent push guard is active", current, kernel_status, attempts, stagnant, report_restarts)
     if attempts >= int(config["maximum_session_attempts"]):
-        return Decision(False, "maximum session attempts reached", current, kernel_status, attempts, stagnant)
-    if stagnant >= int(config["maximum_stagnant_restarts"]):
-        return Decision(False, "maximum stagnant restarts reached", current, kernel_status, attempts, stagnant)
+        return Decision(False, "maximum session attempts reached", current, kernel_status, attempts, stagnant, report_restarts)
+    if different_run:
+        return Decision(
+            True,
+            f"configured run {configured_run_id} has not started",
+            current,
+            kernel_status,
+            attempts,
+            stagnant,
+            report_restarts,
+        )
     if active_status == "ready_for_report":
-        reason = "iteration 100 is durable but final reporting needs a session"
-    elif active_status == "paused":
+        if report_restarts >= int(config["maximum_report_restarts"]):
+            return Decision(False, "maximum report restarts reached", current, kernel_status, attempts, stagnant, report_restarts)
+        return Decision(
+            True,
+            "iteration 100 is durable but final reporting needs a session",
+            current,
+            kernel_status,
+            attempts,
+            stagnant,
+            report_restarts,
+        )
+    if kernel_status == "cancelled":
+        return Decision(
+            True,
+            "previous Kaggle session is cancelled and run is incomplete",
+            current,
+            kernel_status,
+            attempts,
+            stagnant,
+            report_restarts,
+        )
+    if stagnant >= int(config["maximum_stagnant_restarts"]):
+        return Decision(False, "maximum stagnant restarts reached", current, kernel_status, attempts, stagnant, report_restarts)
+    if active_status == "paused":
         reason = "verified checkpoint is resumable"
-    elif kernel_status in {"complete", "cancelled", "error"}:
+    elif kernel_status in {"complete", "error"}:
         reason = f"previous Kaggle session is {kernel_status} and run is incomplete"
     elif not active:
         reason = "no active run exists"
     else:
         reason = "run is incomplete and no Kaggle session is active"
-    return Decision(True, reason, current, kernel_status, attempts, stagnant)
+    return Decision(True, reason, current, kernel_status, attempts, stagnant, report_restarts)
 
 
 class S3State:
@@ -182,21 +261,11 @@ def command_decide(args: argparse.Namespace) -> None:
 
 
 def command_record(args: argparse.Namespace) -> None:
-    config, store = load_config(args.config), S3State()
+    store = S3State()
     previous = store.read_json("orchestration_state.json") or {}
     active = store.read_json("active_run.json") or {}
     observed = int(active.get("current_iteration", args.observed_iteration))
-    preprocessing_progress = int(active.get("preprocessing_completed_files", 0))
-    prior = int(previous.get("last_observed_iteration", 0))
-    previous_preprocessing_progress = int(previous.get("last_preprocessing_completed_files", 0))
-    made_progress = observed > prior or preprocessing_progress > previous_preprocessing_progress
-    state = {
-        "last_push_at": utc_now(), "last_push_reason": args.reason,
-        "last_observed_iteration": observed,
-        "last_preprocessing_completed_files": preprocessing_progress,
-        "session_attempts": 1 if made_progress else int(previous.get("session_attempts", 0)) + 1,
-        "stagnant_restarts": 0 if made_progress else int(previous.get("stagnant_restarts", 0)) + 1,
-    }
+    state = orchestration_state_after_push(previous, active, args.reason, observed, utc_now())
     store.write_json("orchestration_state.json", state)
     print(json.dumps(state, indent=2))
 

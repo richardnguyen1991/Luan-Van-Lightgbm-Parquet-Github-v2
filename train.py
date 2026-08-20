@@ -137,6 +137,9 @@ def _write_run_configuration(
 ) -> tuple[Path, Path]:
     config_dir = run_dir / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads((config_dir / "sample_manifest.json").read_text(encoding="utf-8"))
+    physical_rows = sum(int(item["physical_rows"]) for item in manifest["source_files"])
+    selected_rows = sum(int(value) for value in manifest["split"]["sizes"].values())
     run_config = dict(config)
     run_config.update({
         "run_id": run_dir.name,
@@ -149,7 +152,19 @@ def _write_run_configuration(
         "feature_fraction": 1.0,
         "bagging_fraction": 1.0,
         "bagging_freq": 0,
-        "learning_rate": 0.001,
+        "learning_rate": float(params["learning_rate"]),
+        "dataset_provenance": {
+            "dataset_root": manifest["dataset_root"],
+            "sampling_mode": manifest["sampling_mode"],
+            "source_file_count": len(manifest["source_files"]),
+            "physical_rows": physical_rows,
+            "selected_rows": selected_rows,
+            "all_physical_rows_used": (
+                manifest["sampling_mode"] == "full" and selected_rows == physical_rows
+            ),
+            "split_sizes": dict(manifest["split"]["sizes"]),
+            "leakage_audit_passed": bool(manifest["leakage_audit"]["passed"]),
+        },
         "params_hash": params_hash,
         "feature_schema_hash": feature_schema_hash,
         "feature_count": len(feature_names),

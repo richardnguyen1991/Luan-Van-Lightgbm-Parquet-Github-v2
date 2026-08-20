@@ -143,7 +143,7 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
         params = {
             "objective": "multiclass",
             "num_class": 3,
-            "learning_rate": 0.001,
+            "learning_rate": 0.05,
             "num_leaves": 7,
             "min_data_in_leaf": 5,
             "metric": ["multi_logloss", "multi_error"],
@@ -163,7 +163,7 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
             return 0.01
 
         first = IterationRecorder(
-            history, "session_one", target_iteration, 0.001, 10, checkpoint,
+            history, "session_one", target_iteration, 0.05, 10, checkpoint,
             None, 20, 0, 12.0, 20.0,
         )
         with self.assertRaises(TrainingPauseRequested):
@@ -182,7 +182,7 @@ class LightGBMResumeIntegrationTest(unittest.TestCase):
 
         resumed_model = lgb.Booster(model_str=saved_model["text"])
         second = IterationRecorder(
-            history, "session_two", target_iteration, 0.001, 10,
+            history, "session_two", target_iteration, 0.05, 10,
             checkpoint, None, None, 20, 12.0, 20.0,
         )
         booster = lgb.train(

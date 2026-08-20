@@ -1,9 +1,9 @@
 # LightGBM baseline for CIC-DDoS2019 Parquet
 
-Pipeline huấn luyện baseline LightGBM đa lớp trên mẫu xác định đúng 10.000.000 dòng của bộ dữ liệu
-`dungnguyen28101991/cicddos2019-parquet`. Mẫu được phân bổ theo tỷ lệ số dòng vật lý của từng
-file rồi lấy ngẫu nhiên không hoàn lại với seed 2026, vì vậy không lấy phần đầu file, không tái cân
-bằng lớp và tái lập được. Pipeline chạy trên Kaggle CPU,
+Pipeline huấn luyện baseline LightGBM đa lớp trên toàn bộ số dòng vật lý của bộ dữ liệu
+`dungnguyen28101991/cicddos2019-parquet`. Production không đặt giới hạn tổng dòng hay số dòng
+mỗi file; manifest bắt buộc chứng minh `selected_rows == physical_rows` trước khi LightGBM chạy.
+Split được gán xác định với seed 2026, không tái cân bằng lớp và tái lập được. Pipeline chạy trên Kaggle CPU,
 lưu checkpoint S3 mỗi 10 boosting iterations, tự tiếp tục sau khi session Kaggle kết thúc
 và chỉ hoàn tất khi model đạt chính xác iteration 100 cùng bộ báo cáo cuối.
 
@@ -24,9 +24,9 @@ thay đổi biểu diễn bộ nhớ nội bộ; không bỏ hàng, bỏ feature
 ## Hợp đồng thí nghiệm
 
 - `lightgbm.train` dùng đúng một `lgb.Dataset` cho train và validation; test được đọc lazy khi báo cáo.
-- `objective=multiclass`, `learning_rate=0.001`, `num_boost_round=100` chính xác.
+- `objective=multiclass`, `learning_rate=0.05`, `num_boost_round=100` chính xác.
 - Không early stopping, tuning, feature selection, class/sample weight hoặc tái cân bằng.
-- Toàn bộ train split của mẫu 10 triệu dòng được dùng ở cả 100 vòng; validation chỉ theo dõi,
+- Toàn bộ train split của full dataset được dùng ở cả 100 vòng; validation chỉ theo dõi,
   test chỉ đánh giá cuối.
 - CPU bắt buộc, seed cố định, deterministic và `force_col_wise=true`.
 - Checkpoint mỗi 10 vòng gồm Booster `.txt`, `training_state.json` và history append-only.
@@ -45,7 +45,7 @@ viz.py                          toàn bộ hàm vẽ, không gọi plt.show()
 make_report.py                  đánh giá cuối và tái tạo báo cáo từ artifact
 kaggle_notebook.ipynb           notebook production tự chứa
 kaggle_smoke_test.ipynb         notebook smoke tự chứa
-config/data.json                cấu hình mẫu tỷ lệ xác định 10 triệu dòng
+config/data.json                cấu hình full dataset, không giới hạn dòng
 config/train.json               cấu hình baseline production
 config/report.json              cấu hình metric/figure/importance
 config/orchestration.json       watchdog GitHub Actions/Kaggle
@@ -93,7 +93,7 @@ vào log, checkpoint hoặc artifact.
 
 1. Xác nhận dataset đã được gắn theo `kernel-metadata.json` và accelerator là CPU.
 2. Mở **Actions -> Run Kaggle LightGBM sessions -> Run workflow**.
-3. Chọn `smoke` để kiểm tra nhanh hoặc `production` để chạy mẫu khoa học 10 triệu dòng.
+3. Chọn `smoke` để kiểm tra nhanh hoặc `production` để chạy toàn bộ dataset.
 4. Chỉ bật `force_push` khi cần bỏ qua quyết định chờ của watchdog.
 5. Workflow chạy định kỳ phút 07 và 37. Nó không mở session trùng khi kernel đang chạy,
    không chạy thêm sau trạng thái `complete`, và tiếp tục các trạng thái `paused`,
@@ -102,7 +102,10 @@ vào log, checkpoint hoặc artifact.
 `maximum_session_attempts` trong `config/orchestration.json` giới hạn số lần mở session
 liên tiếp không tạo thêm iteration hoặc file preprocessing bền vững. Bộ đếm tự reset khi
 watchdog quan sát thấy tiến triển mới, nên một run dài không bị khóa vĩnh viễn chỉ vì tổng
-số session đã vượt ngưỡng.
+số session đã vượt ngưỡng. Khi người dùng hủy session trên Kaggle, watchdog tự mở lại sau
+thời gian bảo vệ `recent_push_guard_minutes`, không cần bật `force_push`. Trạng thái
+`ready_for_report` dùng ngân sách riêng `maximum_report_restarts`, để báo cáo cuối có thể
+tiếp tục dù training không tăng iteration nhưng vẫn dừng an toàn nếu báo cáo lỗi lặp lại.
 
 Notebook production tự thực hiện:
 
@@ -119,13 +122,14 @@ Exit code `0` chỉ được xem là hoàn tất khi model đạt iteration 100 
 Yêu cầu Python 3.10+ và các gói: `lightgbm>=4,<5`, `numpy`, `pandas`, `pyarrow`,
 `scikit-learn`, `matplotlib`, `seaborn`, `psutil`, `boto3` và `requests`.
 
-Chuẩn bị mẫu production 10 triệu dòng:
+Chuẩn bị full production dataset:
 
 ```bash
 python data.py \
   --config config/data.json \
   --data-dir /path/to/cicddos2019-parquet \
-  --output-dir outputs/data
+  --output-dir outputs/data \
+  --full-dataset
 ```
 
 Chạy sampled/smoke:
@@ -193,8 +197,10 @@ s3://<bucket>/<prefix>/<run_id>/
 ```
 
 `sample_manifest.json` là bằng chứng chống rò rỉ: sample ID và group không giao nhau giữa
-train/validation/test. `data_profile.json` ghi số hàng, cột, dtype, RAM ước lượng và điều
-kiện an toàn trước khi nạp mẫu đã chọn.
+train/validation/test. Với production, training từ chối chạy nếu manifest không có
+`sampling_mode=full` hoặc bất kỳ file nào có số dòng xử lý khác số dòng vật lý.
+`run_config.json` ghi `physical_rows`, `selected_rows`, split sizes và
+`all_physical_rows_used`; `data_profile.json` ghi số hàng, cột, dtype và RAM ước lượng.
 
 ## Nghiệm thu
 

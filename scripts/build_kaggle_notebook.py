@@ -58,7 +58,7 @@ def build_notebook(
     presigned_bytes = Path(presigned_config).read_bytes() if presigned_config else b""
     presigned_b64 = base64.b64encode(zlib.compress(presigned_bytes, level=9)).decode("ascii") if presigned_bytes else ""
     description = (
-        "Production: an exact deterministic 10,000,000-row proportional sample, natural class distribution, and exactly 100 boosting iterations."
+        "Production: every physical Parquet row, deterministic leakage-safe splits, natural class distribution, and exactly 100 boosting iterations."
         if profile == "production"
         else "Smoke: 2,000 rows per source file and at most 10 new iterations in this session; target remains exactly 100."
     )
@@ -176,6 +176,8 @@ data_command = [
     "--data-dir", str(data_dir),
     "--output-dir", str(PREPARED_DIR),
 ]
+if {profile == "production"!r}:
+    data_command.append("--full-dataset")
 if os.environ.get("RUN_ID"):
     data_command.extend([
         "--s3-config", str(SOURCE_DIR / "{train_config}"),

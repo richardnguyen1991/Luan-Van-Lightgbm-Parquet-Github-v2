@@ -12,8 +12,14 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from checkpoint import CheckpointManager, S3Store, canonical_hash, validate_history  # noqa: E402
-from model import IterationRecorder, TrainingPauseRequested, macro_f1_metric, validate_training_config  # noqa: E402
+from checkpoint import CheckpointManager, S3Store, canonical_hash, sha256_file, validate_history  # noqa: E402
+from model import (  # noqa: E402
+    IterationRecorder,
+    TrainingPauseRequested,
+    macro_f1_metric,
+    validate_dataset_manifest,
+    validate_training_config,
+)
 from train import load_train_config, remaining_rounds, validate_resume_state  # noqa: E402
 
 
@@ -44,6 +50,27 @@ class ContractAndMetricTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exactly 100"):
             validate_training_config(config)
 
+    def test_production_manifest_must_prove_every_physical_row_was_used(self) -> None:
+        config = load_train_config(PROJECT_ROOT / "config" / "train.json")
+        full = {
+            "sampling_mode": "full",
+            "source_files": [
+                {
+                    "path": "a.parquet", "physical_rows": 60,
+                    "planned_sample_rows": 60, "rows_processed": 60,
+                },
+                {
+                    "path": "b.parquet", "physical_rows": 40,
+                    "planned_sample_rows": 40, "rows_processed": 40,
+                },
+            ],
+            "split": {"sizes": {"train": 70, "validation": 15, "test": 15}},
+        }
+        validate_dataset_manifest(config, full)
+        sampled = dict(full, sampling_mode="deterministic_proportional_exact_total")
+        with self.assertRaisesRegex(ValueError, "sampling_mode='full'"):
+            validate_dataset_manifest(config, sampled)
+
     def test_macro_f1_accepts_matrix_and_flat_class_major_predictions(self) -> None:
         labels = np.array([0, 1, 2, 1], dtype=np.int32)
         probabilities = np.array(
@@ -70,7 +97,7 @@ class ContractAndMetricTest(unittest.TestCase):
             history=history,
             session_id="session_test",
             target_iteration=100,
-            learning_rate=0.001,
+            learning_rate=0.05,
             checkpoint_interval=10,
             checkpoint_hook=checkpoint_hook,
             deadline_monotonic=None,
@@ -130,6 +157,54 @@ class CheckpointTest(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "incompatible"):
                 validate_resume_state(loaded_state, run_id, "changed", "schema-hash", 100)
+
+    def test_resume_downloads_configuration_required_for_final_report(self) -> None:
+        checkpoint_config, s3_config = self._configs()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            model = root / "source-model.txt"
+            history = root / "source-history.json"
+            model.write_text("model", encoding="utf-8")
+            history.write_text('[{"iteration": 1}]', encoding="utf-8")
+            state = {
+                "current_iteration": 1,
+                "model_sha256": sha256_file(model),
+                "history_sha256": sha256_file(history),
+            }
+            remote = {
+                "checkpoints/training_state.json": json.dumps(state).encode("utf-8"),
+                "checkpoints/last_model.txt": model.read_bytes(),
+                "metrics/history.json": history.read_bytes(),
+            }
+            for name in CheckpointManager.RESUME_CONFIG_FILES:
+                remote[f"config/{name}"] = json.dumps({"artifact": name}).encode("utf-8")
+
+            class FakeStore:
+                enabled = True
+
+                @staticmethod
+                def run_key(run_id, relative):
+                    return relative
+
+                @staticmethod
+                def object_exists(key):
+                    return key in remote
+
+                @staticmethod
+                def download_file(key, destination, required=False):
+                    if key not in remote:
+                        if required:
+                            raise FileNotFoundError(key)
+                        return False
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(remote[key])
+                    return True
+
+            manager = CheckpointManager(root / "runs", "lightgbm", checkpoint_config, s3_config)
+            manager.s3 = FakeStore()
+            self.assertTrue(manager.download_resume_state("run"))
+            for name in CheckpointManager.RESUME_CONFIG_FILES:
+                self.assertTrue((manager.run_dir("run") / "config" / name).exists())
 
     def test_s3_upload_verifies_temporary_and_final_objects(self) -> None:
         class FakeS3Client:

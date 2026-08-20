@@ -11,7 +11,7 @@
       ["Source IP", "Destination IP", "Source Port", "Destination Port", "Protocol"]
     ],
     "samples_per_file": null,
-    "target_total_rows": 10000000,
+    "target_total_rows": null,
     "sampling_seed": 2026
   },
   "split": {

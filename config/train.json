@@ -12,7 +12,7 @@
   "model_params": {
     "boosting_type": "gbdt",
     "objective": "multiclass",
-    "learning_rate": 0.001,
+    "learning_rate": 0.05,
     "num_leaves": 31,
     "max_depth": -1,
     "min_data_in_leaf": 20,
@@ -42,6 +42,7 @@
   },
   "dataset": {
     "prepared_data_dir": "outputs/data",
+    "require_full_dataset_manifest": true,
     "require_safe_memory_profile": true,
     "loading_strategy": "parquet_sequence",
     "sequence_batch_rows": 4096,
