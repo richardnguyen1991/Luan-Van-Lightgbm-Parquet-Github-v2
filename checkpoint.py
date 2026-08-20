@@ -418,6 +418,11 @@ class S3Store:
 
 
 class CheckpointManager:
+    RESUME_CONFIG_FILES = (
+        "run_config.json", "model_params.json", "sample_manifest.json", "preprocessing.json",
+        "data_profile.json", "label_mapping.json", "report_config.json",
+    )
+
     def __init__(
         self,
         output_root: str | Path,
@@ -468,6 +473,12 @@ class CheckpointManager:
                 state = json.load(handle)
             self.s3.download_file(self.s3.run_key(run_id, "checkpoints/last_model.txt"), run_dir / "checkpoints" / "last_model.txt", required=True)
             self.s3.download_file(self.s3.run_key(run_id, "metrics/history.json"), run_dir / "metrics" / "history.json", required=True)
+            for name in self.RESUME_CONFIG_FILES:
+                self.s3.download_file(
+                    self.s3.run_key(run_id, f"config/{name}"),
+                    run_dir / "config" / name,
+                    required=True,
+                )
             self._verify_downloads(run_dir, state)
             return True
         return state_path.exists()

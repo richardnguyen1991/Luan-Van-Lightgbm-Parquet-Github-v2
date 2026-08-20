@@ -880,6 +880,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="outputs/data")
     parser.add_argument("--samples-per-file", type=int, default=None)
     parser.add_argument("--target-total-rows", type=int, default=None)
+    parser.add_argument(
+        "--full-dataset",
+        action="store_true",
+        help="Process every physical row and override all configured sampling limits",
+    )
     parser.add_argument("--s3-config", default=None)
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--maximum-hours", type=float, default=0.0)
@@ -889,6 +894,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    selected_modes = sum((args.samples_per_file is not None, args.target_total_rows is not None, args.full_dataset))
+    if selected_modes > 1:
+        raise ValueError("--samples-per-file, --target-total-rows, and --full-dataset are mutually exclusive")
     config = load_config(args.config)
     if args.data_dir is not None:
         config["dataset"]["data_dir"] = args.data_dir
@@ -902,6 +910,9 @@ def main() -> int:
             raise ValueError("--target-total-rows must be positive")
         config["dataset"]["samples_per_file"] = None
         config["dataset"]["target_total_rows"] = args.target_total_rows
+    if args.full_dataset:
+        config["dataset"]["samples_per_file"] = None
+        config["dataset"]["target_total_rows"] = None
     store = None
     if args.s3_config or args.run_id:
         if not args.s3_config or not args.run_id:

@@ -52,7 +52,7 @@ def validate_training_config(config: Mapping[str, Any]) -> None:
     required_exact = {
         "boosting_type": "gbdt",
         "objective": "multiclass",
-        "learning_rate": 0.001,
+        "learning_rate": 0.05,
         "num_leaves": 31,
         "max_depth": -1,
         "min_data_in_leaf": 20,
@@ -103,6 +103,35 @@ def effective_model_params(config: Mapping[str, Any], num_classes: int) -> dict[
     params = dict(config["model_params"])
     params["num_class"] = int(num_classes)
     return params
+
+
+def validate_dataset_manifest(config: Mapping[str, Any], manifest: Mapping[str, Any]) -> None:
+    if not bool(config["dataset"].get("require_full_dataset_manifest", False)):
+        return
+    if manifest.get("sampling_mode") != "full":
+        raise ValueError(
+            "Production training requires sampling_mode='full'; sampled prepared data was supplied"
+        )
+    source_files = list(manifest.get("source_files", []))
+    if not source_files:
+        raise ValueError("Production manifest contains no source files")
+    incomplete = []
+    for item in source_files:
+        physical = int(item["physical_rows"])
+        planned = int(item["planned_sample_rows"])
+        processed = int(item["rows_processed"])
+        if physical != planned or physical != processed:
+            incomplete.append(str(item["path"]))
+    if incomplete:
+        raise ValueError(
+            "Production manifest does not use every physical row: " + ", ".join(incomplete[:10])
+        )
+    selected = sum(int(value) for value in manifest["split"]["sizes"].values())
+    physical = sum(int(item["physical_rows"]) for item in source_files)
+    if selected != physical:
+        raise ValueError(
+            f"Production manifest row count mismatch: selected={selected}, physical={physical}"
+        )
 
 
 @dataclass
@@ -422,6 +451,7 @@ def build_datasets(prepared_data_dir: str | Path, config: Mapping[str, Any]) -> 
         raise RuntimeError("Install lightgbm>=4.0,<5 before training") from exc
     prepared = Path(prepared_data_dir)
     manifest = _read_json(prepared / "sample_manifest.json")
+    validate_dataset_manifest(config, manifest)
     preprocessing = _read_json(prepared / "preprocessing.json")
     label_mapping = {str(key): int(value) for key, value in _read_json(prepared / "label_mapping.json").items()}
     profile = _read_json(prepared / "data_profile.json")

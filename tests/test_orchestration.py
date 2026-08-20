@@ -12,7 +12,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 from build_kaggle_notebook import EMBEDDED_FILES, build_notebook  # noqa: E402
 from generate_presigned_config import existing_preprocessing_part_keys, run_keys  # noqa: E402
-from kaggle_orchestrator import decide_next_session  # noqa: E402
+from kaggle_orchestrator import decide_next_session, orchestration_state_after_push  # noqa: E402
 
 
 class NotebookBundleTest(unittest.TestCase):
@@ -26,6 +26,8 @@ class NotebookBundleTest(unittest.TestCase):
             self.assertIn("PRESIGNED_CONFIG_ZLIB_B64 = ''", source)
             self.assertIn('LightGBM device=CPU; Kaggle accelerator=none', source)
             self.assertIn('PIPELINE_SESSION_DEADLINE_EPOCH', source)
+            if profile == "production":
+                self.assertIn('--full-dataset', source)
             self.assertIn('Embedded source integrity failure', source)
             self.assertIn('payload.decode("utf-8")', source)
             self.assertNotIn("AKIA", source)
@@ -46,6 +48,11 @@ class NotebookBundleTest(unittest.TestCase):
         train_config = json.loads((PROJECT_ROOT / "config" / "train.json").read_text(encoding="utf-8"))
         self.assertEqual(train_config["device"], "cpu")
         self.assertEqual(train_config["model_params"]["device_type"], "cpu")
+        self.assertEqual(train_config["model_params"]["learning_rate"], 0.05)
+        self.assertTrue(train_config["dataset"]["require_full_dataset_manifest"])
+        data_config = json.loads((PROJECT_ROOT / "config" / "data.json").read_text(encoding="utf-8"))
+        self.assertIsNone(data_config["dataset"]["samples_per_file"])
+        self.assertIsNone(data_config["dataset"]["target_total_rows"])
         self.assertEqual(train_config["model_params"]["histogram_pool_size"], 128.0)
         self.assertTrue(train_config["model_params"]["use_quantized_grad"])
         self.assertEqual(train_config["model_params"]["num_grad_quant_bins"], 16)
@@ -110,9 +117,29 @@ class WatchdogDecisionTest(unittest.TestCase):
 
     def test_complete_run_never_pushes(self):
         decision = decide_next_session(
-            {"status": "complete", "current_iteration": 100}, {}, "complete", self.config, self.now
+            {
+                "run_id": self.config["run_id"],
+                "status": "complete",
+                "current_iteration": 100,
+            },
+            {},
+            "complete",
+            self.config,
+            self.now,
         )
         self.assertFalse(decision.should_push)
+
+    def test_new_configured_run_starts_after_previous_run_completed(self):
+        decision = decide_next_session(
+            {"run_id": "old-sampled-run", "status": "complete", "current_iteration": 100},
+            {"session_attempts": 110, "stagnant_restarts": 5},
+            "complete",
+            self.config,
+            self.now,
+        )
+        self.assertTrue(decision.should_push)
+        self.assertEqual(decision.current_iteration, 0)
+        self.assertIn(self.config["run_id"], decision.reason)
 
     def test_running_kernel_never_pushes_duplicate_session(self):
         decision = decide_next_session(
@@ -135,6 +162,73 @@ class WatchdogDecisionTest(unittest.TestCase):
         self.assertFalse(decide_next_session({}, recent, "complete", self.config, self.now).should_push)
         stagnant = {"stagnant_restarts": self.config["maximum_stagnant_restarts"]}
         self.assertFalse(decide_next_session({}, stagnant, "complete", self.config, self.now).should_push)
+
+    def test_cancelled_session_bypasses_old_stagnation_lock(self):
+        state = {
+            "last_active_status": "running",
+            "last_observed_iteration": 30,
+            "stagnant_restarts": self.config["maximum_stagnant_restarts"],
+        }
+        decision = decide_next_session(
+            {"status": "running", "current_iteration": 30},
+            state,
+            "cancelled",
+            self.config,
+            self.now,
+        )
+        self.assertTrue(decision.should_push)
+        self.assertIn("cancelled", decision.reason)
+
+    def test_ready_for_report_uses_its_own_bounded_retry_budget(self):
+        active = {"status": "ready_for_report", "current_iteration": 100}
+        state = {
+            "last_active_status": "ready_for_report",
+            "last_observed_iteration": 100,
+            "stagnant_restarts": self.config["maximum_stagnant_restarts"],
+            "report_restarts": self.config["maximum_report_restarts"] - 1,
+        }
+        self.assertTrue(decide_next_session(active, state, "complete", self.config, self.now).should_push)
+        state["report_restarts"] = self.config["maximum_report_restarts"]
+        decision = decide_next_session(active, state, "complete", self.config, self.now)
+        self.assertFalse(decision.should_push)
+        self.assertEqual(decision.reason, "maximum report restarts reached")
+
+    def test_report_retry_counter_is_recorded_separately(self):
+        active = {"status": "ready_for_report", "current_iteration": 100}
+        first = orchestration_state_after_push(
+            {"last_active_status": "running", "last_observed_iteration": 100},
+            active,
+            "report",
+            100,
+            "2026-08-20T00:00:00+00:00",
+        )
+        self.assertEqual(first["report_restarts"], 1)
+        self.assertEqual(first["stagnant_restarts"], 0)
+        second = orchestration_state_after_push(
+            first,
+            active,
+            "report retry",
+            100,
+            "2026-08-20T01:00:00+00:00",
+        )
+        self.assertEqual(second["report_restarts"], 2)
+        self.assertEqual(second["stagnant_restarts"], 1)
+
+    def test_error_session_remains_subject_to_stagnation_lock(self):
+        state = {
+            "last_active_status": "running",
+            "last_observed_iteration": 30,
+            "stagnant_restarts": self.config["maximum_stagnant_restarts"],
+        }
+        decision = decide_next_session(
+            {"status": "running", "current_iteration": 30},
+            state,
+            "error",
+            self.config,
+            self.now,
+        )
+        self.assertFalse(decision.should_push)
+        self.assertEqual(decision.reason, "maximum stagnant restarts reached")
 
     def test_preprocessing_progress_releases_old_stagnation_limit(self):
         active = {
@@ -177,7 +271,11 @@ class WatchdogDecisionTest(unittest.TestCase):
     def test_session_attempt_limit_still_blocks_without_progress(self):
         limit = self.config["maximum_session_attempts"]
         active = {"status": "paused", "current_iteration": 20}
-        state = {"last_observed_iteration": 20, "session_attempts": limit}
+        state = {
+            "last_active_status": "paused",
+            "last_observed_iteration": 20,
+            "session_attempts": limit,
+        }
         decision = decide_next_session(active, state, "complete", self.config, self.now)
         self.assertFalse(decision.should_push)
         self.assertEqual(decision.reason, "maximum session attempts reached")
